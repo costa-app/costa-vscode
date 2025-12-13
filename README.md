@@ -20,10 +20,11 @@
 
 <!-- commands -->
 
-| Command        | Title              |
-| -------------- | ------------------ |
-| `costa.login`  | Costa Code: Login  |
-| `costa.logout` | Costa Code: Logout |
+| Command         | Title                                 |
+| --------------- | ------------------------------------- |
+| `costa.login`   | Costa Code: Login                     |
+| `costa.logout`  | Costa Code: Logout                    |
+| `costa.testCli` | Costa Code: Test Costa CLI Connection |
 
 <!-- commands -->
 

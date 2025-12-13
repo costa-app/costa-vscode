@@ -44,6 +44,11 @@
         "command": "costa.logout",
         "title": "Logout",
         "category": "Costa Code"
+      },
+      {
+        "command": "costa.testCli",
+        "title": "Test Costa CLI Connection",
+        "category": "Costa Code"
       }
     ],
     "configuration": {
