@@ -1,4 +1,8 @@
 import type { Uri } from 'vscode'
+import { execFile } from 'node:child_process'
+import { chmodSync, existsSync } from 'node:fs'
+import * as path from 'node:path'
+import process from 'node:process'
 import { defineExtension, useCommands } from 'reactive-vscode'
 import { commands, window } from 'vscode'
 import { oauth2Client } from './oauth'
@@ -7,6 +11,55 @@ import { PointsStatus } from './status/pointsStatus'
 import { PrimaryStatus } from './status/primaryStatus'
 import { UsageStream } from './usageStream'
 import { initLogger, log } from './utils/logger'
+
+function getBundledCliPath(context: any): string {
+  const extRoot: string = context?.extensionPath ?? context?.extensionUri?.fsPath
+  if (!extRoot) {
+    throw new Error('extension root path not available')
+  }
+
+  // NOTE: right now we only bundle a universal macOS binary
+  if (process.platform === 'darwin') {
+    return path.join(extRoot, 'res', 'bin', 'darwin-universal', 'costa')
+  }
+
+  // Placeholders for future platform support
+  if (process.platform === 'win32') {
+    return path.join(extRoot, 'res', 'bin', 'win32-x64', 'costa.exe')
+  }
+
+  // linux
+  return path.join(extRoot, 'res', 'bin', 'linux-x64', 'costa')
+}
+
+async function runBundledCli(context: any, args: string[]): Promise<{ stdout: string, stderr: string }> {
+  const bin = getBundledCliPath(context)
+
+  if (!existsSync(bin)) {
+    throw new Error(`costa CLI not found at ${bin}`)
+  }
+
+  // VSIX installs can drop executable bits; best-effort fix on unix.
+  if (process.platform !== 'win32') {
+    try {
+      chmodSync(bin, 0o755)
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  return await new Promise((resolve, reject) => {
+    execFile(bin, args, { timeout: 15_000 }, (err, stdout, stderr) => {
+      if (err) {
+        const msg = (stderr || '').toString().trim()
+        reject(new Error(msg ? `${String(err)}\n${msg}` : String(err)))
+        return
+      }
+      resolve({ stdout: (stdout || '').toString(), stderr: (stderr || '').toString() })
+    })
+  })
+}
 
 const { activate, deactivate } = defineExtension((context) => {
   // Initializers
@@ -238,6 +291,17 @@ const { activate, deactivate } = defineExtension((context) => {
       catch (error) {
         log.error('index: Error refreshing points data:', error)
         window.showErrorMessage('Failed to refresh Costa points data')
+      }
+    },
+    'costa.testCli': async () => {
+      try {
+        const { stdout, stderr } = await runBundledCli(context, ['--version'])
+        const out = (stdout || stderr).trim()
+        window.showInformationMessage(out ? `Costa CLI: ${out}` : 'Costa CLI ran successfully')
+      }
+      catch (error) {
+        log.error('index: costa.testCli failed:', error)
+        window.showErrorMessage(`Costa CLI failed: ${String(error)}`)
       }
     },
   })
