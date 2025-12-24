@@ -91,7 +91,7 @@ jobs:
           fi
 
       - name: Create pull request with updated binaries
-        uses: peter-evans/create-pull-request@v6
+        uses: costa-app/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: sync costa-cli ${{ github.event.inputs.tag }} binaries"
