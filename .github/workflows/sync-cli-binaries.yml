@@ -1,0 +1,106 @@
+name: Sync costa-cli binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sync (e.g., v0.0.1-alpha.11)"
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      REPO: costa-app/costa-cli
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure required tools are available
+        run: |
+          set -euo pipefail
+          gh --version
+
+      - name: Download release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag }}"
+          echo "Downloading assets for tag: $TAG"
+          mkdir -p tmp/cli
+          gh release download "$TAG" -R "$REPO" -D tmp/cli
+          echo "Downloaded assets:" && ls -la tmp/cli
+
+      - name: Extract archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tmp/cli/extracted
+          shopt -s nullglob
+          for f in tmp/cli/*.tar.gz; do
+            echo "Extracting $f"; tar -xzf "$f" -C tmp/cli/extracted; done
+          for f in tmp/cli/*.tgz; do
+            echo "Extracting $f"; tar -xzf "$f" -C tmp/cli/extracted; done
+          # Also copy any bare binaries that might have been uploaded directly
+          [ -f tmp/cli/costa ] && cp tmp/cli/costa tmp/cli/extracted/
+          echo "Extracted contents:" && find tmp/cli/extracted -maxdepth 2 -type f -ls
+
+      - name: Locate platform binaries
+        id: locate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Find Mach-O (macOS) and ELF (linux) costa binaries
+          MAC_BIN=$(find tmp/cli/extracted -type f -name 'costa' -exec sh -c 'file -b "$1" | grep -qi "Mach-O" && echo "$1"' _ {} \; | head -n1 || true)
+          LINUX_BIN=$(find tmp/cli/extracted -type f -name 'costa' -exec sh -c 'file -b "$1" | grep -qi "ELF" && echo "$1"' _ {} \; | head -n1 || true)
+
+          echo "mac=$MAC_BIN"   >> "$GITHUB_OUTPUT"
+          echo "linux=$LINUX_BIN" >> "$GITHUB_OUTPUT"
+
+          echo "Detected binaries:" && echo "mac: $MAC_BIN" && echo "linux: $LINUX_BIN"
+
+      - name: Install binaries into res/bin
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p res/bin/darwin-universal res/bin/linux-x64
+          if [ -n "${{ steps.locate.outputs.mac }}" ]; then
+            cp "${{ steps.locate.outputs.mac }}" res/bin/darwin-universal/costa
+            chmod +x res/bin/darwin-universal/costa
+          fi
+          if [ -n "${{ steps.locate.outputs.linux }}" ]; then
+            cp "${{ steps.locate.outputs.linux }}" res/bin/linux-x64/costa
+            chmod +x res/bin/linux-x64/costa
+          fi
+          echo "Resulting bin tree:" && find res/bin -maxdepth 2 -type f -ls || true
+
+      - name: Fail if no binaries were installed
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=$(find res/bin -type f -name 'costa' | wc -l | tr -d ' ')
+          if [ "$count" -eq 0 ]; then
+            echo "No binaries installed under res/bin. Aborting." >&2
+            exit 1
+          fi
+
+      - name: Create pull request with updated binaries
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: sync costa-cli ${{ github.event.inputs.tag }} binaries"
+          title: "chore: sync costa-cli ${{ github.event.inputs.tag }} binaries"
+          body: |
+            Auto-updated from costa-app/costa-cli release `${{ github.event.inputs.tag }}`.
+
+            - Synced macOS and Linux binaries
+            - Binaries placed under `res/bin/` as expected by the extension
+          branch: "chore/sync-cli-${{ github.event.inputs.tag }}"
+          add-paths: |
+            res/bin/**
