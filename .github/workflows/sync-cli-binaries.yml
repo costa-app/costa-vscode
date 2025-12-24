@@ -16,11 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REPO: costa-app/costa-cli
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.PR_CREATOR_TOKEN }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PR_CREATOR_TOKEN }}
+          fetch-depth: 0
 
       - name: Ensure required tools are available
         run: |
