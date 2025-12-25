@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to sync (e.g., v0.0.1-alpha.11)"
+        description: 'Release tag to sync (e.g., v0.0.1-alpha.11)'
         required: true
 
 permissions:
@@ -142,13 +142,13 @@ jobs:
         uses: costa-app/create-pull-request@v5
         with:
           token: ${{ secrets.PR_CREATOR_TOKEN }}
-          commit-message: "chore: sync costa-cli ${{ github.event.inputs.tag }} binaries"
-          title: "chore: sync costa-cli ${{ github.event.inputs.tag }} binaries"
+          commit-message: 'chore: sync costa-cli ${{ github.event.inputs.tag }} binaries'
+          title: 'chore: sync costa-cli ${{ github.event.inputs.tag }} binaries'
           body: |
             Auto-updated from costa-app/costa-cli release `${{ github.event.inputs.tag }}`.
 
             - Synced macOS and Linux binaries
             - Binaries placed under `res/bin/` as expected by the extension
-          branch: "chore/sync-cli-${{ github.event.inputs.tag }}"
+          branch: 'chore/sync-cli-${{ github.event.inputs.tag }}'
           add-paths: |
             res/bin/**
