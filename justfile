@@ -14,7 +14,7 @@ lint:
     pnpm run lint
 
 lint-fix:
-    pnpm run lint:fix
+    pnpm run lint --fix
 
 test:
     pnpm exec vitest --run
