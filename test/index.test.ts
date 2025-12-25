@@ -29,38 +29,30 @@ function expectedBundledBinaryPath(): string {
   return path.join(root, 'res', 'bin', 'linux-x64', 'costa')
 }
 
-// Helper to conditionally skip the test (used for Windows until a bundled exe exists)
-const itUnless = (cond: boolean) => (cond ? it.skip : it)
-
 describe('embedded costa CLI binary', () => {
-  const winExpected = path.join(process.cwd(), 'res', 'bin', 'win32-x64', 'costa.exe')
+  it('has an embedded binary for this runner arch and it is callable', async () => {
+    const bin = expectedBundledBinaryPath()
 
-  itUnless(process.platform === 'win32' && !existsSync(winExpected))(
-    'has an embedded binary for this runner arch and it is callable',
-    async () => {
-      const bin = expectedBundledBinaryPath()
+    // It should exist for this OS/arch
+    expect(existsSync(bin)).toBe(true)
 
-      // It should exist for this OS/arch
-      expect(existsSync(bin)).toBe(true)
+    // On POSIX ensure it has any execute bit set
+    if (process.platform !== 'win32') {
+      const mode = statSync(bin).mode
+      expect((mode & 0o111) !== 0).toBe(true)
+    }
 
-      // On POSIX ensure it has any execute bit set
-      if (process.platform !== 'win32') {
-        const mode = statSync(bin).mode
-        expect((mode & 0o111) !== 0).toBe(true)
+    // Try executing the binary. We don't assert on exit code or output,
+    // only that it can be invoked (i.e., not ENOENT/EACCES).
+    try {
+      await execFileAsync(bin, ['--version'], { timeout: 5000 })
+    }
+    catch (err: any) {
+      const code = (err && (err.code || err.errno)) as string | undefined
+      if (code === 'ENOENT' || code === 'EACCES') {
+        throw err
       }
-
-      // Try executing the binary. We don't assert on exit code or output,
-      // only that it can be invoked (i.e., not ENOENT/EACCES).
-      try {
-        await execFileAsync(bin, ['--version'], { timeout: 5000 })
-      }
-      catch (err: any) {
-        const code = (err && (err.code || err.errno)) as string | undefined
-        if (code === 'ENOENT' || code === 'EACCES') {
-          throw err
-        }
-        // Other non-zero exit codes are tolerated as long as execution started.
-      }
-    },
-  )
+      // Other non-zero exit codes are tolerated as long as execution started.
+    }
+  })
 })
