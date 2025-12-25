@@ -13,8 +13,11 @@ dev:
 lint:
     pnpm run lint
 
+lint-fix:
+    pnpm run lint:fix
+
 test:
-    pnpm run test
+    pnpm exec vitest --run
 
 typecheck:
     pnpm run typecheck
@@ -37,5 +40,5 @@ package:
 publish:
     pnpm run ext:publish
 
-# Combined tasks
-check: lint typecheck test
+# Combined tasks that are frequently run together
+ci: lint typecheck test
