@@ -1,5 +1,5 @@
 import { defineExtension, useCommands } from 'reactive-vscode'
-import { env, Uri, window } from 'vscode'
+import { env, ExtensionMode, Uri, window } from 'vscode'
 import * as cli from './cli'
 import { ContextStatus } from './status/contextStatus'
 import { PointsStatus } from './status/pointsStatus'
@@ -10,6 +10,9 @@ import { initLogger, log } from './utils/logger'
 const { activate, deactivate } = defineExtension((context) => {
   // Initialize the logger
   initLogger(context)
+
+  // Check if we're in development mode
+  const isDevelopment = context.extensionMode === ExtensionMode.Development
 
   // Initialize CLI context
   cli.setContext(context)
@@ -77,7 +80,9 @@ const { activate, deactivate } = defineExtension((context) => {
     },
     'costa.login': async () => {
       try {
-        window.showInformationMessage('Starting Costa authentication process...')
+        if (isDevelopment) {
+          window.showInformationMessage('Starting Costa authentication process...')
+        }
 
         // Call CLI login
         const loginResult = await cli.login()
@@ -85,10 +90,6 @@ const { activate, deactivate } = defineExtension((context) => {
         if (loginResult.auth_url) {
           // Open the auth URL in the browser
           await env.openExternal(Uri.parse(loginResult.auth_url))
-
-          if (loginResult.message) {
-            window.showInformationMessage(loginResult.message)
-          }
 
           // Start polling for login completion
           log.info('index: Starting login polling...')
@@ -98,7 +99,9 @@ const { activate, deactivate } = defineExtension((context) => {
               if (statusResult.logged_in) {
                 clearInterval(pollInterval)
                 log.info('index: Login successful')
-                window.showInformationMessage('Successfully logged in to Costa')
+                if (isDevelopment) {
+                  window.showInformationMessage('Successfully logged in to Costa')
+                }
                 primaryStatus.setLoggedIn()
                 pointsStatus.show()
                 contextStatus.show()
@@ -131,7 +134,9 @@ const { activate, deactivate } = defineExtension((context) => {
       try {
         await cli.logout()
         log.info('index: Logout successful')
-        window.showInformationMessage('Logged out from Costa')
+        if (isDevelopment) {
+          window.showInformationMessage('Logged out from Costa')
+        }
         primaryStatus.setLoggedOut()
         pointsStatus.hide()
         contextStatus.hide()
@@ -145,10 +150,14 @@ const { activate, deactivate } = defineExtension((context) => {
     },
     'costa.refreshPoints': async () => {
       log.info('index: Manually refreshing points data')
-      window.showInformationMessage('Refreshing Costa usage information...')
+      if (isDevelopment) {
+        window.showInformationMessage('Refreshing Costa usage information...')
+      }
       try {
         await usageStream.fetchUsageData()
-        window.showInformationMessage('Costa usage refreshed')
+        if (isDevelopment) {
+          window.showInformationMessage('Costa usage refreshed')
+        }
       }
       catch (error) {
         log.error('index: Error refreshing points data:', error)
