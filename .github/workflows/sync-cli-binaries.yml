@@ -64,6 +64,10 @@ jobs:
             mkdir -p tmp/cli/extracted/bare
             cp tmp/cli/costa tmp/cli/extracted/bare/
           fi
+          if [ -f tmp/cli/costa.exe ]; then
+            mkdir -p tmp/cli/extracted/bare
+            cp tmp/cli/costa.exe tmp/cli/extracted/bare/
+          fi
 
           echo "Extracted contents:"
           find tmp/cli/extracted -maxdepth 3 -type f -ls
@@ -95,20 +99,36 @@ jobs:
             | head -n1 || true
           )"
 
-          echo "mac=$MAC_BIN"                 >> "$GITHUB_OUTPUT"
-          echo "linux_amd64=$LINUX_AMD64_BIN" >> "$GITHUB_OUTPUT"
-          echo "linux_arm64=$LINUX_ARM64_BIN" >> "$GITHUB_OUTPUT"
+          WINDOWS_AMD64_BIN="$(
+            find tmp/cli/extracted -type f -name 'costa.exe' \
+              -path '*windows*amd64*' \
+              | head -n1 || true
+          )"
+
+          WINDOWS_ARM64_BIN="$(
+            find tmp/cli/extracted -type f -name 'costa.exe' \
+              -path '*windows*arm64*' \
+              | head -n1 || true
+          )"
+
+          echo "mac=$MAC_BIN"                     >> "$GITHUB_OUTPUT"
+          echo "linux_amd64=$LINUX_AMD64_BIN"     >> "$GITHUB_OUTPUT"
+          echo "linux_arm64=$LINUX_ARM64_BIN"     >> "$GITHUB_OUTPUT"
+          echo "windows_amd64=$WINDOWS_AMD64_BIN" >> "$GITHUB_OUTPUT"
+          echo "windows_arm64=$WINDOWS_ARM64_BIN" >> "$GITHUB_OUTPUT"
 
           echo "Detected binaries:"
-          echo "mac:         $MAC_BIN"
-          echo "linux_amd64:  $LINUX_AMD64_BIN"
-          echo "linux_arm64:  $LINUX_ARM64_BIN"
+          echo "mac:           $MAC_BIN"
+          echo "linux_amd64:   $LINUX_AMD64_BIN"
+          echo "linux_arm64:   $LINUX_ARM64_BIN"
+          echo "windows_amd64: $WINDOWS_AMD64_BIN"
+          echo "windows_arm64: $WINDOWS_ARM64_BIN"
 
       - name: Install binaries into res/bin
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p res/bin/darwin-universal res/bin/linux-x64 res/bin/linux-arm64
+          mkdir -p res/bin/darwin-universal res/bin/linux-x64 res/bin/linux-arm64 res/bin/win32-x64 res/bin/win32-arm64
 
           if [ -n "${{ steps.locate.outputs.mac }}" ]; then
             cp "${{ steps.locate.outputs.mac }}" res/bin/darwin-universal/costa
@@ -125,6 +145,14 @@ jobs:
             chmod +x res/bin/linux-arm64/costa
           fi
 
+          if [ -n "${{ steps.locate.outputs.windows_amd64 }}" ]; then
+            cp "${{ steps.locate.outputs.windows_amd64 }}" res/bin/win32-x64/costa.exe
+          fi
+
+          if [ -n "${{ steps.locate.outputs.windows_arm64 }}" ]; then
+            cp "${{ steps.locate.outputs.windows_arm64 }}" res/bin/win32-arm64/costa.exe
+          fi
+
           echo "Resulting bin tree:"
           find res/bin -maxdepth 2 -type f -ls || true
 
@@ -132,7 +160,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          count=$(find res/bin -type f -name 'costa' | wc -l | tr -d ' ')
+          count=$(find res/bin -type f \( -name 'costa' -o -name 'costa.exe' \) | wc -l | tr -d ' ')
           if [ "$count" -eq 0 ]; then
             echo "No binaries installed under res/bin. Aborting." >&2
             exit 1
@@ -147,7 +175,7 @@ jobs:
           body: |
             Auto-updated from costa-app/costa-cli release `${{ github.event.inputs.tag }}`.
 
-            - Synced macOS and Linux binaries
+            - Synced macOS, Linux, and Windows binaries
             - Binaries placed under `res/bin/` as expected by the extension
           branch: "chore/sync-cli-${{ github.event.inputs.tag }}"
           add-paths: |
