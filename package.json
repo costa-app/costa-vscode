@@ -2,7 +2,7 @@
   "publisher": "costa",
   "name": "costa-code",
   "displayName": "costa",
-  "version": "0.0.1-internal.5",
+  "version": "0.0.1-internal.6",
   "private": true,
   "packageManager": "pnpm@10.4.1",
   "description": "",
