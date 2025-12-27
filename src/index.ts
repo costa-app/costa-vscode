@@ -1,7 +1,6 @@
-import type { Uri } from 'vscode'
 import { defineExtension, useCommands } from 'reactive-vscode'
-import { commands, window } from 'vscode'
-import { oauth2Client } from './oauth'
+import { env, ExtensionMode, Uri, window } from 'vscode'
+import * as cli from './cli'
 import { ContextStatus } from './status/contextStatus'
 import { PointsStatus } from './status/pointsStatus'
 import { PrimaryStatus } from './status/primaryStatus'
@@ -9,20 +8,22 @@ import { UsageStream } from './usageStream'
 import { initLogger, log } from './utils/logger'
 
 const { activate, deactivate } = defineExtension((context) => {
-  // Initializers
   // Initialize the logger
   initLogger(context)
-  // Initialize OAuth2 client
-  oauth2Client.setContext(context)
 
-  // 1. Create status bar items
+  // Check if we're in development mode
+  const isDevelopment = context.extensionMode === ExtensionMode.Development
+
+  // Initialize CLI context
+  cli.setContext(context)
+
+  // Create status bar items
   const primaryStatus = new PrimaryStatus()
   context.subscriptions.push(primaryStatus)
 
   const pointsStatus = new PointsStatus()
   context.subscriptions.push(pointsStatus)
 
-  // Create context length status bar item
   const contextStatus = new ContextStatus()
   context.subscriptions.push(contextStatus)
 
@@ -34,134 +35,8 @@ const { activate, deactivate } = defineExtension((context) => {
     log.info(`index: Received usage data: ${JSON.stringify(data)}`)
 
     try {
-      // Add safeguards for data handling
       if (data) {
         pointsStatus.update(data.points, data.total_points)
-
-        const { activate: _activate, deactivate: _deactivate } = defineExtension((context) => {
-          // Initializers
-          // Initialize the logger
-          initLogger(context)
-          // Initialize OAuth2 client
-          oauth2Client.setContext(context)
-
-          // 1. Create status bar items
-          const primaryStatus = new PrimaryStatus()
-          context.subscriptions.push(primaryStatus)
-
-          const pointsStatus = new PointsStatus()
-          context.subscriptions.push(pointsStatus)
-
-          // Create context length status bar item
-          const contextStatus = new ContextStatus()
-          context.subscriptions.push(contextStatus)
-
-          // Create usage stream
-          const usageStream = new UsageStream()
-
-          // Handle usage data updates
-          usageStream.on('usage', (data: any) => {
-            log.info(`index: Received usage data: ${JSON.stringify(data)}`)
-
-            try {
-              // Add safeguards for data handling
-              if (data) {
-                pointsStatus.update(data.points, data.total_points)
-                contextStatus.update(data.context_length)
-              }
-              else {
-                log.warn('index: Received null or undefined usage data')
-              }
-            }
-            catch (error) {
-              log.error('index: Error handling usage data:', error)
-            }
-          })
-
-          // If we are not logged in, only show primary and make it a warning
-          void oauth2Client.getAccessToken()
-            .then(Boolean)
-            .then((isLoggedIn) => {
-              if (isLoggedIn) {
-                log.info('index: User is logged in, showing all status items')
-                primaryStatus.setLoggedIn()
-                pointsStatus.show()
-                contextStatus.show()
-                // Start the usage stream
-                usageStream.connect().catch(err => log.error('index: Error starting usage stream:', err))
-              }
-              else {
-                log.info('index: User is not logged in, hiding points and context status')
-                primaryStatus.setLoggedOut()
-                pointsStatus.hide()
-                contextStatus.hide()
-              }
-            })
-
-          // Register all commands
-          useCommands({
-            'costa.showExtensionInfo': () => {
-              window.showInformationMessage('💫 ready to explore the universe?')
-            },
-            'costa.login': async () => {
-              window.showInformationMessage('Starting Costa authentication process...')
-              const success = await oauth2Client.login()
-              if (success) {
-                log.info('index: Login successful')
-                window.showInformationMessage('Successfully logged in to Costa')
-                primaryStatus.setLoggedIn()
-                pointsStatus.show()
-                contextStatus.show()
-                // Start the usage stream after login
-                usageStream.connect().catch(err => log.error('index: Error starting usage stream:', err))
-              }
-            },
-            'costa.logout': async () => {
-              await oauth2Client.logout()
-              log.info('index: Logout successful')
-              window.showInformationMessage('Logged out from Costa')
-              primaryStatus.setLoggedOut()
-              pointsStatus.hide()
-              contextStatus.hide()
-              // Disconnect the usage stream
-              usageStream.disconnect()
-            },
-            'costa.oauthCallback': async (uri: Uri) => {
-              // This command will be called when the OAuth callback URI is opened
-              // Forward to the OAuth2 client
-              log.info('Received OAuth callback URI:', uri.toString())
-              oauth2Client.handleCallback(uri)
-            },
-            'costa.doSSEStuff': () => {
-              window.showInformationMessage('did something')
-            },
-          })
-
-          // Handle URI callbacks
-          context.subscriptions.push(
-            window.registerUriHandler({
-              handleUri(uri: Uri) {
-                log.info('URI Handler received:', uri.toString())
-
-                // Check if this is our OAuth callback
-                if (uri.path === '/callback') {
-                  // Execute the callback command with the URI
-                  commands.executeCommand('costa.oauthCallback', uri)
-                }
-                else {
-                  log.info(`Unknown URI path: ${uri.path}`)
-                }
-              },
-            }),
-          )
-
-          // Return a cleanup function to dispose the status bar items
-          return () => {
-            log.info('index: Extension deactivating, disconnecting usage stream')
-            usageStream.disconnect()
-          }
-        })
-
         contextStatus.update(data.context_length)
       }
       else {
@@ -173,11 +48,10 @@ const { activate, deactivate } = defineExtension((context) => {
     }
   })
 
-  // If we are not logged in, only show primary and make it a warning
-  void oauth2Client.getAccessToken()
-    .then(Boolean)
-    .then((isLoggedIn) => {
-      if (isLoggedIn) {
+  // Check login status on startup
+  void cli.status()
+    .then((result) => {
+      if (result.logged_in) {
         log.info('index: User is logged in, showing all status items')
         primaryStatus.setLoggedIn()
         pointsStatus.show()
@@ -192,6 +66,12 @@ const { activate, deactivate } = defineExtension((context) => {
         contextStatus.hide()
       }
     })
+    .catch((error) => {
+      log.error('index: Error checking login status:', error)
+      primaryStatus.setLoggedOut()
+      pointsStatus.hide()
+      contextStatus.hide()
+    })
 
   // Register all commands
   useCommands({
@@ -199,66 +79,105 @@ const { activate, deactivate } = defineExtension((context) => {
       window.showInformationMessage('💫 ready to explore the universe?')
     },
     'costa.login': async () => {
-      window.showInformationMessage('Starting Costa authentication process...')
-      const success = await oauth2Client.login()
-      if (success) {
-        log.info('index: Login successful')
-        window.showInformationMessage('Successfully logged in to Costa')
-        primaryStatus.setLoggedIn()
-        pointsStatus.show()
-        contextStatus.show()
-        // Start the usage stream after login
-        usageStream.connect().catch(err => log.error('index: Error starting usage stream:', err))
+      try {
+        if (isDevelopment) {
+          window.showInformationMessage('Starting Costa authentication process...')
+        }
+
+        // Call CLI login
+        const loginResult = await cli.login()
+
+        if (loginResult.auth_url) {
+          // Open the auth URL in the browser
+          await env.openExternal(Uri.parse(loginResult.auth_url))
+
+          // Start polling for login completion
+          log.info('index: Starting login polling...')
+          const pollInterval = setInterval(async () => {
+            try {
+              const statusResult = await cli.status()
+              if (statusResult.logged_in) {
+                clearInterval(pollInterval)
+                log.info('index: Login successful')
+                if (isDevelopment) {
+                  window.showInformationMessage('Successfully logged in to Costa')
+                }
+                primaryStatus.setLoggedIn()
+                pointsStatus.show()
+                contextStatus.show()
+                // Start the usage stream after login
+                usageStream.connect().catch(err => log.error('index: Error starting usage stream:', err))
+              }
+            }
+            catch (error) {
+              log.error('index: Error during login polling:', error)
+            }
+          }, 3000)
+
+          // Set a timeout to stop polling after the timeout_seconds from CLI
+          const timeoutSeconds = loginResult.timeout_seconds ?? 600
+          setTimeout(() => {
+            clearInterval(pollInterval)
+            log.info('index: Login polling timed out')
+          }, timeoutSeconds * 1000)
+        }
+        else {
+          window.showErrorMessage('Login failed: No auth URL returned')
+        }
+      }
+      catch (error) {
+        log.error('index: Login failed:', error)
+        window.showErrorMessage(`Login failed: ${String(error)}`)
       }
     },
     'costa.logout': async () => {
-      await oauth2Client.logout()
-      log.info('index: Logout successful')
-      window.showInformationMessage('Logged out from Costa')
-      primaryStatus.setLoggedOut()
-      pointsStatus.hide()
-      contextStatus.hide()
-      // Disconnect the usage stream
-      usageStream.disconnect()
-    },
-    'costa.oauthCallback': async (uri: Uri) => {
-      // This command will be called when the OAuth callback URI is opened
-      // Forward to the OAuth2 client
-      log.info('Received OAuth callback URI:', uri.toString())
-      oauth2Client.handleCallback(uri)
+      try {
+        await cli.logout()
+        log.info('index: Logout successful')
+        if (isDevelopment) {
+          window.showInformationMessage('Logged out from Costa')
+        }
+        primaryStatus.setLoggedOut()
+        pointsStatus.hide()
+        contextStatus.hide()
+        // Disconnect the usage stream
+        usageStream.disconnect()
+      }
+      catch (error) {
+        log.error('index: Logout failed:', error)
+        window.showErrorMessage(`Logout failed: ${String(error)}`)
+      }
     },
     'costa.refreshPoints': async () => {
       log.info('index: Manually refreshing points data')
-      window.showInformationMessage('Refreshing Costa usage information...')
+      if (isDevelopment) {
+        window.showInformationMessage('Refreshing Costa usage information...')
+      }
       try {
-        // Trigger a manual refresh of the usage data
-        window.showInformationMessage('Refreshing Costa usage...')
         await usageStream.fetchUsageData()
+        if (isDevelopment) {
+          window.showInformationMessage('Costa usage refreshed')
+        }
       }
       catch (error) {
         log.error('index: Error refreshing points data:', error)
         window.showErrorMessage('Failed to refresh Costa points data')
       }
     },
+    'costa.testCli': async () => {
+      try {
+        const statusResult = await cli.status()
+        const msg = statusResult.logged_in
+          ? `Logged in - Points: ${statusResult.points ?? 0}/${statusResult.total_points ?? 0}`
+          : 'Not logged in'
+        window.showInformationMessage(`Costa CLI: ${msg}`)
+      }
+      catch (error) {
+        log.error('index: costa.testCli failed:', error)
+        window.showErrorMessage(`Costa CLI failed: ${String(error)}`)
+      }
+    },
   })
-
-  // Handle URI callbacks
-  context.subscriptions.push(
-    window.registerUriHandler({
-      handleUri(uri: Uri) {
-        log.info('URI Handler received:', uri.toString())
-
-        // Check if this is our OAuth callback
-        if (uri.path === '/callback') {
-          // Execute the callback command with the URI
-          commands.executeCommand('costa.oauthCallback', uri)
-        }
-        else {
-          log.info(`Unknown URI path: ${uri.path}`)
-        }
-      },
-    }),
-  )
 
   // Return a cleanup function to dispose the status bar items
   return () => {

@@ -2,7 +2,7 @@
   "publisher": "costa",
   "name": "costa-code",
   "displayName": "costa",
-  "version": "0.0.1-internal.2",
+  "version": "0.0.1-internal.7",
   "private": true,
   "packageManager": "pnpm@10.4.1",
   "description": "",
@@ -24,13 +24,12 @@
   "files": [
     "LICENSE.md",
     "dist/*",
-    "res/*"
+    "res/**/*"
   ],
   "engines": {
     "vscode": "^1.97.0"
   },
   "activationEvents": [
-    "onUri",
     "onStartupFinished"
   ],
   "contributes": {
@@ -43,6 +42,11 @@
       {
         "command": "costa.logout",
         "title": "Logout",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.testCli",
+        "title": "Test Costa CLI Connection",
         "category": "Costa Code"
       }
     ],
@@ -68,15 +72,10 @@
         "costa.oauth2.redirectUri": {
           "type": "string",
           "default": "vscode://costa.costa-code/callback",
-          "description": "OAuth2 redirect URI for this VS Code extension"
+          "description": "OAuth2 redirect URI for this VS Code extension (deprecated - CLI handles OAuth now)"
         }
       }
-    },
-    "uriHandlers": [
-      {
-        "uri": "vscode://costa.costa-code/callback"
-      }
-    ]
+    }
   },
   "scripts": {
     "build": "tsdown src/index.ts --external vscode",
