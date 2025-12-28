@@ -1,8 +1,8 @@
 import type { ExtensionContext, Webview, WebviewView, WebviewViewProvider } from 'vscode'
-import * as vscode from 'vscode'
+import type { SetupStatusResult } from '../cli'
 
 import type { UsageStream } from '../usageStream'
-import type { SetupStatusResult } from '../cli'
+import * as vscode from 'vscode'
 import * as cli from '../cli'
 import { log } from '../utils/logger'
 
@@ -222,6 +222,11 @@ export class SidebarProvider implements WebviewViewProvider {
   .card button {
     margin-top: 8px;
     width: 100%;
+    background: #4f46e5;
+    color: #ffffff;
+  }
+  .card button:hover {
+    background: #4338ca;
   }
   .status-badge {
     display: inline-block;
@@ -231,12 +236,12 @@ export class SidebarProvider implements WebviewViewProvider {
     font-weight: 600;
   }
   .status-configured {
-    background: var(--vscode-testing-iconPassed);
-    color: var(--vscode-button-foreground);
+    background: #6366f1;
+    color: #ffffff;
   }
   .status-not-configured {
-    background: var(--vscode-testing-iconQueued);
-    color: var(--vscode-button-foreground);
+    background: #ea580c;
+    color: #ffffff;
   }
   footer {
     position: sticky;
@@ -336,7 +341,7 @@ function render(state) {
         <h4>Claude Code</h4>
         <p>
           <span class="status-badge \${claudeCodeConfigured ? 'status-configured' : 'status-not-configured'}">
-            \${claudeCodeConfigured ? 'Configured' : 'Not configured'}
+            \${claudeCodeConfigured ? '✓ Connected' : '⚠ Setup Needed'}
           </span>
         </p>
         \${setup.claude_code?.version ? \`<p>Version: \${setup.claude_code.version}</p>\` : ''}
@@ -347,7 +352,7 @@ function render(state) {
         <h4>Codex</h4>
         <p>
           <span class="status-badge \${codexConfigured ? 'status-configured' : 'status-not-configured'}">
-            \${codexConfigured ? 'Configured' : 'Not configured'}
+            \${codexConfigured ? '✓ Connected' : '⚠ Setup Needed'}
           </span>
         </p>
         <button id="setup-codex">Set up Codex</button>
