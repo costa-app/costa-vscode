@@ -1,8 +1,9 @@
 import type { ExtensionContext, Webview, WebviewView, WebviewViewProvider } from 'vscode'
 import * as vscode from 'vscode'
+
+import type { UsageStream } from '../usageStream'
 import type { SetupStatusResult } from '../cli'
 import * as cli from '../cli'
-import type { UsageStream } from '../usageStream'
 import { log } from '../utils/logger'
 
 interface SidebarState {
@@ -20,6 +21,7 @@ interface SidebarState {
 export class SidebarProvider implements WebviewViewProvider {
   private view?: WebviewView
   private latestUsage?: { points: any, total_points: any, context_length: any }
+  private currentState: SidebarState = { loggedIn: false }
 
   constructor(
     private context: ExtensionContext,
@@ -67,7 +69,14 @@ export class SidebarProvider implements WebviewViewProvider {
 
   public notifyUsage(data: { points: any, total_points: any, context_length: any }) {
     this.latestUsage = data
-    this.postState()
+    // Update usage in current state and repost
+    this.postState({
+      usage: {
+        points: data.points,
+        total_points: data.total_points,
+        context_length: data.context_length,
+      },
+    })
   }
 
   public async refreshAll() {
@@ -75,11 +84,11 @@ export class SidebarProvider implements WebviewViewProvider {
       const [status, setup] = await Promise.all([
         cli.status().catch((err) => {
           log.error('sidebar: status failed', err)
-          return null
+          return undefined
         }),
         cli.setupStatus().catch((err) => {
           log.error('sidebar: setup status failed', err)
-          return null
+          return undefined
         }),
       ])
 
@@ -102,13 +111,14 @@ export class SidebarProvider implements WebviewViewProvider {
     if (!this.view)
       return
 
-    const state: SidebarState = {
-      loggedIn: false,
-      usage: undefined,
-      setup: undefined,
+    // Merge with current state to preserve values like loggedIn
+    this.currentState = {
+      ...this.currentState,
       ...partial,
     }
-    this.view.webview.postMessage({ type: 'state', body: state })
+
+    log.info(`sidebar: Posting state - loggedIn=${this.currentState.loggedIn}, hasUsage=${!!this.currentState.usage}, hasSetup=${!!this.currentState.setup}`)
+    this.view.webview.postMessage({ type: 'state', body: this.currentState })
   }
 
   private getHtml(webview: Webview) {
