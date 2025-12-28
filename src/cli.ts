@@ -177,7 +177,7 @@ export async function setupStatus(): Promise<SetupStatusResult> {
 
 export async function setupClaudeCode(): Promise<void> {
   try {
-    await run(['setup', 'claude-code', '--force'])
+    await run(['setup', 'claude-code', '--format', 'json'])
     log.info('cli.setupClaudeCode: successful')
   }
   catch (error) {
