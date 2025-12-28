@@ -30,9 +30,34 @@
     "vscode": "^1.97.0"
   },
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:costa.sidebar",
+    "onCommand:costa.login",
+    "onCommand:costa.logout",
+    "onCommand:costa.sidebar.reveal",
+    "onCommand:costa.revealAndRefresh",
+    "onCommand:costa.setup.claudeCode",
+    "onCommand:costa.setup.codex"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "costa",
+          "title": "Costa",
+          "icon": "res/icon.png"
+        }
+      ]
+    },
+    "views": {
+      "costa": [
+        {
+          "type": "webview",
+          "id": "costa.sidebar",
+          "name": "Costa"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "costa.login",
@@ -45,8 +70,23 @@
         "category": "Costa Code"
       },
       {
-        "command": "costa.testCli",
-        "title": "Test Costa CLI Connection",
+        "command": "costa.sidebar.reveal",
+        "title": "Show Costa",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.revealAndRefresh",
+        "title": "Reveal and Refresh Costa",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.setup.claudeCode",
+        "title": "Set up Claude Code",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.setup.codex",
+        "title": "Set up Codex",
         "category": "Costa Code"
       }
     ],

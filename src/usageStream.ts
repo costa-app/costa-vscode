@@ -69,7 +69,7 @@ export class UsageStream extends EventEmitter {
       const data: UsageData = {
         points: statusResult.points ?? 0,
         total_points: statusResult.total_points ?? 0,
-        context_length: '-', // Placeholder until CLI supports it
+        context_length: (statusResult as any).context_length ?? '-',
       }
 
       log.info(`UsageStream: Received usage data: points=${data.points}, total_points=${data.total_points}, context_length=${data.context_length}`)

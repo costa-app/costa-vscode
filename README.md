@@ -20,11 +20,14 @@
 
 <!-- commands -->
 
-| Command         | Title                                 |
-| --------------- | ------------------------------------- |
-| `costa.login`   | Costa Code: Login                     |
-| `costa.logout`  | Costa Code: Logout                    |
-| `costa.testCli` | Costa Code: Test Costa CLI Connection |
+| Command                  | Title                                |
+| ------------------------ | ------------------------------------ |
+| `costa.login`            | Costa Code: Login                    |
+| `costa.logout`           | Costa Code: Logout                   |
+| `costa.sidebar.reveal`   | Costa Code: Show Costa               |
+| `costa.revealAndRefresh` | Costa Code: Reveal and Refresh Costa |
+| `costa.setup.claudeCode` | Costa Code: Set up Claude Code       |
+| `costa.setup.codex`      | Costa Code: Set up Codex             |
 
 <!-- commands -->
 

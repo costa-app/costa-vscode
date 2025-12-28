@@ -1,11 +1,13 @@
 import { defineExtension, useCommands } from 'reactive-vscode'
-import { env, ExtensionMode, Uri, window } from 'vscode'
+import * as vscode from 'vscode'
+import { env, ExtensionMode, ProgressLocation, Uri, window } from 'vscode'
 import * as cli from './cli'
 import { ContextStatus } from './status/contextStatus'
 import { PointsStatus } from './status/pointsStatus'
 import { PrimaryStatus } from './status/primaryStatus'
 import { UsageStream } from './usageStream'
 import { initLogger, log } from './utils/logger'
+import { SidebarProvider } from './views/sidebar'
 
 const { activate, deactivate } = defineExtension((context) => {
   // Initialize the logger
@@ -30,6 +32,12 @@ const { activate, deactivate } = defineExtension((context) => {
   // Create usage stream
   const usageStream = new UsageStream()
 
+  // Create and register sidebar provider
+  const sidebarProvider = new SidebarProvider(context, usageStream)
+  context.subscriptions.push(
+    window.registerWebviewViewProvider('costa.sidebar', sidebarProvider),
+  )
+
   // Handle usage data updates
   usageStream.on('usage', (data: any) => {
     log.info(`index: Received usage data: ${JSON.stringify(data)}`)
@@ -38,6 +46,7 @@ const { activate, deactivate } = defineExtension((context) => {
       if (data) {
         pointsStatus.update(data.points, data.total_points)
         contextStatus.update(data.context_length)
+        sidebarProvider.notifyUsage(data)
       }
       else {
         log.warn('index: Received null or undefined usage data')
@@ -78,6 +87,25 @@ const { activate, deactivate } = defineExtension((context) => {
     'costa.showExtensionInfo': () => {
       window.showInformationMessage('💫 ready to explore the universe?')
     },
+    'costa.sidebar.reveal': async () => {
+      try {
+        await vscode.commands.executeCommand('costa.sidebar.focus')
+      }
+      catch (error) {
+        log.error('index: sidebar.reveal failed:', error)
+      }
+    },
+    'costa.revealAndRefresh': async () => {
+      try {
+        await vscode.commands.executeCommand('costa.sidebar.focus')
+        await usageStream.fetchUsageData()
+        await sidebarProvider.refreshAll()
+      }
+      catch (error) {
+        log.error('index: revealAndRefresh failed:', error)
+        window.showErrorMessage('Failed to open or refresh Costa panel')
+      }
+    },
     'costa.login': async () => {
       try {
         if (isDevelopment) {
@@ -107,6 +135,8 @@ const { activate, deactivate } = defineExtension((context) => {
                 contextStatus.show()
                 // Start the usage stream after login
                 usageStream.connect().catch(err => log.error('index: Error starting usage stream:', err))
+                // Refresh sidebar to show logged-in state
+                sidebarProvider.refreshAll().catch(err => log.error('index: Error refreshing sidebar:', err))
               }
             }
             catch (error) {
@@ -142,10 +172,52 @@ const { activate, deactivate } = defineExtension((context) => {
         contextStatus.hide()
         // Disconnect the usage stream
         usageStream.disconnect()
+        // Refresh sidebar to show logged-out state
+        await sidebarProvider.refreshAll()
       }
       catch (error) {
         log.error('index: Logout failed:', error)
         window.showErrorMessage(`Logout failed: ${String(error)}`)
+      }
+    },
+    'costa.setup.claudeCode': async () => {
+      try {
+        await window.withProgress(
+          {
+            location: ProgressLocation.Notification,
+            title: 'Setting up Claude Code...',
+            cancellable: false,
+          },
+          async () => {
+            await cli.setupClaudeCode()
+            await sidebarProvider.refreshAll()
+          },
+        )
+        window.showInformationMessage('Claude Code setup complete')
+      }
+      catch (error) {
+        log.error('index: setup.claudeCode failed', error)
+        window.showErrorMessage(`Claude Code setup failed: ${String(error)}`)
+      }
+    },
+    'costa.setup.codex': async () => {
+      try {
+        await window.withProgress(
+          {
+            location: ProgressLocation.Notification,
+            title: 'Setting up Codex...',
+            cancellable: false,
+          },
+          async () => {
+            await cli.setupCodex()
+            await sidebarProvider.refreshAll()
+          },
+        )
+        window.showInformationMessage('Codex setup complete')
+      }
+      catch (error) {
+        log.error('index: setup.codex failed', error)
+        window.showErrorMessage(`Codex setup failed: ${String(error)}`)
       }
     },
     'costa.refreshPoints': async () => {
@@ -162,19 +234,6 @@ const { activate, deactivate } = defineExtension((context) => {
       catch (error) {
         log.error('index: Error refreshing points data:', error)
         window.showErrorMessage('Failed to refresh Costa points data')
-      }
-    },
-    'costa.testCli': async () => {
-      try {
-        const statusResult = await cli.status()
-        const msg = statusResult.logged_in
-          ? `Logged in - Points: ${statusResult.points ?? 0}/${statusResult.total_points ?? 0}`
-          : 'Not logged in'
-        window.showInformationMessage(`Costa CLI: ${msg}`)
-      }
-      catch (error) {
-        log.error('index: costa.testCli failed:', error)
-        window.showErrorMessage(`Costa CLI failed: ${String(error)}`)
       }
     },
   })

@@ -17,6 +17,7 @@ export interface StatusResult {
   logged_in: boolean
   points?: number | string
   total_points?: number | string
+  context_length?: number | string
 }
 
 export interface TokenResult {
@@ -144,6 +145,54 @@ export async function logout(): Promise<void> {
   }
   catch (error) {
     log.error('cli.logout failed:', error)
+    throw error
+  }
+}
+
+export interface SetupComponentStatus {
+  config_exists?: boolean
+  installed?: boolean
+  is_costa_enabled?: boolean
+  version?: string
+  configured?: boolean
+}
+
+export interface SetupStatusResult {
+  claude_code?: SetupComponentStatus
+  codex?: SetupComponentStatus
+}
+
+export async function setupStatus(): Promise<SetupStatusResult> {
+  try {
+    const { stdout } = await run(['setup', 'status', '--format', 'json'])
+    const result = JSON.parse(stdout) as SetupStatusResult
+    log.info(`cli.setupStatus: ${JSON.stringify(result)}`)
+    return result
+  }
+  catch (error) {
+    log.error('cli.setupStatus failed:', error)
+    throw error
+  }
+}
+
+export async function setupClaudeCode(): Promise<void> {
+  try {
+    await run(['setup', 'claude-code', '--force'])
+    log.info('cli.setupClaudeCode: successful')
+  }
+  catch (error) {
+    log.error('cli.setupClaudeCode failed:', error)
+    throw error
+  }
+}
+
+export async function setupCodex(): Promise<void> {
+  try {
+    await run(['setup', 'codex', '--force'])
+    log.info('cli.setupCodex: successful')
+  }
+  catch (error) {
+    log.error('cli.setupCodex failed:', error)
     throw error
   }
 }

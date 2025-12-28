@@ -14,8 +14,8 @@ export class PrimaryStatus implements Disposable {
   setLoggedIn() {
     this.item.text = '💫'
     this.item.backgroundColor = new ThemeColor('statusBarItem.activeBackground')
-    this.item.tooltip = 'Refresh Costa Points'
-    this.item.command = 'costa.refreshPoints' // Changed from costa.login to costa.refreshPoints
+    this.item.tooltip = 'Open Costa and Refresh'
+    this.item.command = 'costa.revealAndRefresh'
   }
 
   setLoggedOut() {
