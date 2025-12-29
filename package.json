@@ -31,7 +31,8 @@
   },
   "activationEvents": [
     "onStartupFinished",
-    "onView:costa.sidebar",
+    "onView:costa.usage",
+    "onView:costa.setup",
     "onCommand:costa.login",
     "onCommand:costa.logout",
     "onCommand:costa.sidebar.reveal",
@@ -53,8 +54,14 @@
       "costa": [
         {
           "type": "webview",
-          "id": "costa.sidebar",
-          "name": "Costa"
+          "id": "costa.usage",
+          "name": "Usage",
+          "when": "costa.loggedIn"
+        },
+        {
+          "type": "webview",
+          "id": "costa.setup",
+          "name": "Setup"
         }
       ]
     },
@@ -100,7 +107,7 @@
       "view/title": [
         {
           "command": "costa.refresh",
-          "when": "view == costa.sidebar",
+          "when": "view == costa.usage",
           "group": "navigation"
         }
       ]

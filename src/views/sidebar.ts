@@ -26,6 +26,7 @@ export class SidebarProvider implements WebviewViewProvider {
   constructor(
     private context: ExtensionContext,
     private usageStream: UsageStream,
+    private mode: 'usage' | 'setup',
   ) {}
 
   resolveWebviewView(webviewView: WebviewView) {
@@ -124,6 +125,7 @@ export class SidebarProvider implements WebviewViewProvider {
   private getHtml(webview: Webview) {
     const nonce = getNonce()
     const csp = `default-src 'none'; img-src ${webview.cspSource} data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';`
+    const mode = this.mode
 
     return `<!DOCTYPE html>
 <html>
@@ -272,11 +274,12 @@ export class SidebarProvider implements WebviewViewProvider {
 </head>
 <body>
   <main id="content"></main>
-  <footer id="footer">
+  ${mode === 'setup' ? `<footer id="footer">
     <button id="logout" class="secondary">Logout</button>
-  </footer>
+  </footer>` : ''}
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
+const mode = '${mode}';
 
 function render(state) {
   const content = document.getElementById('content');
@@ -318,57 +321,61 @@ function render(state) {
   const claudeCodeConfigured = setup.claude_code?.config_exists && setup.claude_code?.is_costa_enabled;
   const codexConfigured = setup.codex?.config_exists && setup.codex?.is_costa_enabled;
 
-  content.innerHTML = \`
-    <div class="section">
-      <h3>Usage</h3>
-      <div class="usage-row">
-        <span class="usage-label">Points</span>
-        <span class="usage-value">\${pts}/\${tot}</span>
+  if (mode === 'usage') {
+    content.innerHTML = \`
+      <div class="section">
+        <div class="usage-row">
+          <span class="usage-label">Points</span>
+          <span class="usage-value">\${pts}/\${tot}</span>
+        </div>
+        <div class="usage-row">
+          <span class="usage-label">Context</span>
+          <span class="usage-value">\${ctx}</span>
+        </div>
       </div>
-      <div class="usage-row">
-        <span class="usage-label">Context</span>
-        <span class="usage-value">\${ctx}</span>
+    \`;
+  } else if (mode === 'setup') {
+    content.innerHTML = \`
+      <div class="section">
+        <div class="card">
+          <h4>Claude Code</h4>
+          <p>
+            <span class="status-badge \${claudeCodeConfigured ? 'status-configured' : 'status-not-configured'}">
+              \${claudeCodeConfigured ? '✓ Connected' : '⚠ Setup Needed'}
+            </span>
+          </p>
+          \${setup.claude_code?.version ? \`<p>Version: \${setup.claude_code.version}</p>\` : ''}
+          <button id="setup-claude-code">Set up Claude Code</button>
+        </div>
+
+        <div class="card">
+          <h4>Codex</h4>
+          <p>
+            <span class="status-badge \${codexConfigured ? 'status-configured' : 'status-not-configured'}">
+              \${codexConfigured ? '✓ Connected' : '⚠ Setup Needed'}
+            </span>
+          </p>
+          <button id="setup-codex">Set up Codex</button>
+        </div>
       </div>
-    </div>
+    \`;
 
-    <div class="section">
-      <h3>Setup</h3>
+    const setupClaudeBtn = document.getElementById('setup-claude-code');
+    if (setupClaudeBtn) {
+      setupClaudeBtn.onclick = () => vscode.postMessage({ type: 'setup:claudeCode' });
+    }
 
-      <div class="card">
-        <h4>Claude Code</h4>
-        <p>
-          <span class="status-badge \${claudeCodeConfigured ? 'status-configured' : 'status-not-configured'}">
-            \${claudeCodeConfigured ? '✓ Connected' : '⚠ Setup Needed'}
-          </span>
-        </p>
-        \${setup.claude_code?.version ? \`<p>Version: \${setup.claude_code.version}</p>\` : ''}
-        <button id="setup-claude-code">Set up Claude Code</button>
-      </div>
-
-      <div class="card">
-        <h4>Codex</h4>
-        <p>
-          <span class="status-badge \${codexConfigured ? 'status-configured' : 'status-not-configured'}">
-            \${codexConfigured ? '✓ Connected' : '⚠ Setup Needed'}
-          </span>
-        </p>
-        <button id="setup-codex">Set up Codex</button>
-      </div>
-    </div>
-  \`;
-
-  const setupClaudeBtn = document.getElementById('setup-claude-code');
-  if (setupClaudeBtn) {
-    setupClaudeBtn.onclick = () => vscode.postMessage({ type: 'setup:claudeCode' });
-  }
-
-  const setupCodexBtn = document.getElementById('setup-codex');
-  if (setupCodexBtn) {
-    setupCodexBtn.onclick = () => vscode.postMessage({ type: 'setup:codex' });
+    const setupCodexBtn = document.getElementById('setup-codex');
+    if (setupCodexBtn) {
+      setupCodexBtn.onclick = () => vscode.postMessage({ type: 'setup:codex' });
+    }
   }
 }
 
-document.getElementById('logout').onclick = () => vscode.postMessage({ type: 'logout' });
+const logoutBtn = document.getElementById('logout');
+if (logoutBtn) {
+  logoutBtn.onclick = () => vscode.postMessage({ type: 'logout' });
+}
 
 window.addEventListener('message', ev => {
   if (ev.data?.type === 'state') {

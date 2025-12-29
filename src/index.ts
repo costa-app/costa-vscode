@@ -32,10 +32,13 @@ const { activate, deactivate } = defineExtension((context) => {
   // Create usage stream
   const usageStream = new UsageStream()
 
-  // Create and register sidebar provider
-  const sidebarProvider = new SidebarProvider(context, usageStream)
+  // Create and register sidebar providers
+  const usageProvider = new SidebarProvider(context, usageStream, 'usage')
+  const setupProvider = new SidebarProvider(context, usageStream, 'setup')
+
   context.subscriptions.push(
-    window.registerWebviewViewProvider('costa.sidebar', sidebarProvider),
+    window.registerWebviewViewProvider('costa.usage', usageProvider),
+    window.registerWebviewViewProvider('costa.setup', setupProvider),
   )
 
   // Handle usage data updates
@@ -46,7 +49,8 @@ const { activate, deactivate } = defineExtension((context) => {
       if (data) {
         pointsStatus.update(data.points, data.total_points)
         contextStatus.update(data.context_length)
-        sidebarProvider.notifyUsage(data)
+        usageProvider.notifyUsage(data)
+        setupProvider.notifyUsage(data)
       }
       else {
         log.warn('index: Received null or undefined usage data')
@@ -62,6 +66,7 @@ const { activate, deactivate } = defineExtension((context) => {
     .then((result) => {
       if (result.logged_in) {
         log.info('index: User is logged in, showing all status items')
+        vscode.commands.executeCommand('setContext', 'costa.loggedIn', true)
         primaryStatus.setLoggedIn()
         pointsStatus.show()
         contextStatus.show()
@@ -70,6 +75,7 @@ const { activate, deactivate } = defineExtension((context) => {
       }
       else {
         log.info('index: User is not logged in, hiding points and context status')
+        vscode.commands.executeCommand('setContext', 'costa.loggedIn', false)
         primaryStatus.setLoggedOut()
         pointsStatus.hide()
         contextStatus.hide()
@@ -77,6 +83,7 @@ const { activate, deactivate } = defineExtension((context) => {
     })
     .catch((error) => {
       log.error('index: Error checking login status:', error)
+      vscode.commands.executeCommand('setContext', 'costa.loggedIn', false)
       primaryStatus.setLoggedOut()
       pointsStatus.hide()
       contextStatus.hide()
@@ -97,9 +104,10 @@ const { activate, deactivate } = defineExtension((context) => {
     },
     'costa.revealAndRefresh': async () => {
       try {
-        await vscode.commands.executeCommand('costa.sidebar.focus')
+        await vscode.commands.executeCommand('costa.usage.focus')
         await usageStream.fetchUsageData()
-        await sidebarProvider.refreshAll()
+        await usageProvider.refreshAll()
+        await setupProvider.refreshAll()
       }
       catch (error) {
         log.error('index: revealAndRefresh failed:', error)
@@ -130,13 +138,15 @@ const { activate, deactivate } = defineExtension((context) => {
                 if (isDevelopment) {
                   window.showInformationMessage('Successfully logged in to Costa')
                 }
+                vscode.commands.executeCommand('setContext', 'costa.loggedIn', true)
                 primaryStatus.setLoggedIn()
                 pointsStatus.show()
                 contextStatus.show()
                 // Start the usage stream after login
                 usageStream.connect().catch(err => log.error('index: Error starting usage stream:', err))
                 // Refresh sidebar to show logged-in state
-                sidebarProvider.refreshAll().catch(err => log.error('index: Error refreshing sidebar:', err))
+                usageProvider.refreshAll().catch(err => log.error('index: Error refreshing usage view:', err))
+                setupProvider.refreshAll().catch(err => log.error('index: Error refreshing setup view:', err))
               }
             }
             catch (error) {
@@ -167,13 +177,15 @@ const { activate, deactivate } = defineExtension((context) => {
         if (isDevelopment) {
           window.showInformationMessage('Logged out from Costa')
         }
+        vscode.commands.executeCommand('setContext', 'costa.loggedIn', false)
         primaryStatus.setLoggedOut()
         pointsStatus.hide()
         contextStatus.hide()
         // Disconnect the usage stream
         usageStream.disconnect()
         // Refresh sidebar to show logged-out state
-        await sidebarProvider.refreshAll()
+        await usageProvider.refreshAll()
+        await setupProvider.refreshAll()
       }
       catch (error) {
         log.error('index: Logout failed:', error)
@@ -190,7 +202,8 @@ const { activate, deactivate } = defineExtension((context) => {
           },
           async () => {
             await cli.setupClaudeCode()
-            await sidebarProvider.refreshAll()
+            await usageProvider.refreshAll()
+            await setupProvider.refreshAll()
           },
         )
         window.showInformationMessage('Claude Code setup complete')
@@ -210,7 +223,8 @@ const { activate, deactivate } = defineExtension((context) => {
           },
           async () => {
             await cli.setupCodex()
-            await sidebarProvider.refreshAll()
+            await usageProvider.refreshAll()
+            await setupProvider.refreshAll()
           },
         )
         window.showInformationMessage('Codex setup complete')
@@ -240,7 +254,8 @@ const { activate, deactivate } = defineExtension((context) => {
       log.info('index: Refreshing sidebar')
       try {
         await usageStream.fetchUsageData()
-        await sidebarProvider.refreshAll()
+        await usageProvider.refreshAll()
+        await setupProvider.refreshAll()
       }
       catch (error) {
         log.error('index: Error refreshing sidebar:', error)
