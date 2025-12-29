@@ -36,7 +36,7 @@
 
 To install an internal build of the Costa VS Code extension for use inside Costa:
 
-1. Navigate to the GitHub releases page: https://github.com/costa-security/costa-vscode/releases
+1. Navigate to the GitHub releases page: https://github.com/costa-app/costa-vscode/releases
 2. Locate the latest internal release (the `.vsix` file name will include `-internal.` and a commit hash, e.g., `costa-code-0.0.1-internal.1+a88d628.vsix`).
 3. Download the `.vsix` file to your machine.
 4. In VS Code, open the Extensions view:
@@ -47,4 +47,4 @@ To install an internal build of the Costa VS Code extension for use inside Costa
 
 ## License
 
-[MIT](./LICENSE.md) License © 2025 [Jacob Foster Heimark](https://github.com/hmk) and [Costa Security](https://costa.security)
+[MIT](./LICENSE.md) License © 2025 [Jacob Foster Heimark](https://github.com/hmk) and [Costa Security](https://costa.app)

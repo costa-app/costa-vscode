@@ -8,13 +8,13 @@
   "description": "",
   "author": "Jacob Foster Heimark <jake@costa.security>",
   "license": "MIT",
-  "homepage": "https://github.com/costa-security/costa-vscode#readme",
+  "homepage": "https://github.com/costa-app/costa-vscode#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/costa-security/costa-vscode"
+    "url": "https://github.com/costa-app/costa-vscode"
   },
   "bugs": {
-    "url": "https://github.com/costa-security/costa-vscode/issues"
+    "url": "https://github.com/costa-app/costa-vscode/issues"
   },
   "categories": [
     "Other"
@@ -46,7 +46,7 @@
         {
           "id": "costa",
           "title": "Costa",
-          "icon": "res/icon.png"
+          "icon": "res/icon.svg"
         }
       ]
     },
