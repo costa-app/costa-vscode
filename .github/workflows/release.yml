@@ -36,14 +36,19 @@ jobs:
       - name: Derive release metadata from tag
         id: meta
         run: |
+          set -euo pipefail
+
           REF="${GITHUB_REF_NAME}"
 
           if [[ "$REF" == pre-v* ]]; then
             IS_PRERELEASE="true"
             VERSION="${REF#pre-v}"
-          else
+          elif [[ "$REF" == v* ]]; then
             IS_PRERELEASE="false"
             VERSION="${REF#v}"
+          else
+            echo "Tag must start with v or pre-v. Got: $REF"
+            exit 1
           fi
 
           # Must be X.Y.Z for VS Code Marketplace
@@ -54,11 +59,21 @@ jobs:
 
           echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$REF" >> "$GITHUB_OUTPUT"
 
-      - run: pnpm install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Set extension version from tag
-        run: pnpm version --no-git-tag-version "${{ steps.meta.outputs.version }}"
+      - name: Align package.json version to tag (idempotent)
+        run: |
+          set -euo pipefail
+          WANT="${{ steps.meta.outputs.version }}"
+          HAVE="$(node -p "require('./package.json').version")"
+          if [[ "$HAVE" == "$WANT" ]]; then
+            echo "package.json already at $HAVE; skipping version bump."
+          else
+            pnpm version --no-git-tag-version --allow-same-version "$WANT"
+          fi
 
       - name: Generate GitHub Release notes
         run: npx changelogithub
@@ -68,11 +83,11 @@ jobs:
       - name: Generate .vsix file
         run: pnpm package
 
-      # Optional but nice: attach the VSIX to the GitHub Release.
-      # Uses gh CLI (available on ubuntu-latest).
       - name: Create/Update GitHub Release and upload VSIX
         run: |
-          TAG="${GITHUB_REF_NAME}"
+          set -euo pipefail
+          TAG="${{ steps.meta.outputs.tag }}"
+
           if [[ "${{ steps.meta.outputs.is_prerelease }}" == "true" ]]; then
             gh release create "$TAG" --prerelease --title "$TAG" ./*.vsix --clobber || \
             gh release upload "$TAG" ./*.vsix --clobber
@@ -83,8 +98,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Detect publish tokens
+        id: tokens
+        run: |
+          set -euo pipefail
+
+          HAS_VSCE=false
+          HAS_OVSX=false
+
+          if [[ -n "${VSCE_PAT:-}" ]]; then HAS_VSCE=true; fi
+          if [[ -n "${OVSX_PAT:-}" ]]; then HAS_OVSX=true; fi
+
+          echo "has_vsce=$HAS_VSCE" >> "$GITHUB_OUTPUT"
+          echo "has_ovsx=$HAS_OVSX" >> "$GITHUB_OUTPUT"
+
+          if [[ "$HAS_VSCE" != "true" && "$HAS_OVSX" != "true" ]]; then
+            echo "No VSCE_PAT or OVSX_PAT found; will skip marketplace publish."
+          fi
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
       - name: Publish Extension (stable)
-        if: steps.meta.outputs.is_prerelease == 'false'
+        if: steps.meta.outputs.is_prerelease == 'false' && (steps.tokens.outputs.has_vsce == 'true' || steps.tokens.outputs.has_ovsx == 'true')
         run: npx vsxpub --no-dependencies
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
@@ -92,7 +128,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Extension (pre-release)
-        if: steps.meta.outputs.is_prerelease == 'true'
+        if: steps.meta.outputs.is_prerelease == 'true' && (steps.tokens.outputs.has_vsce == 'true' || steps.tokens.outputs.has_ovsx == 'true')
         run: npx vsxpub --no-dependencies --pre-release
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
