@@ -2,38 +2,69 @@
   "publisher": "costa",
   "name": "costa-code",
   "displayName": "costa",
-  "version": "0.0.1-internal.2",
+  "version": "0.0.1-internal.7",
   "private": true,
   "packageManager": "pnpm@10.4.1",
   "description": "",
   "author": "Jacob Foster Heimark <jake@costa.security>",
   "license": "MIT",
-  "homepage": "https://github.com/costa-security/costa-vscode#readme",
+  "homepage": "https://github.com/costa-app/costa-vscode#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/costa-security/costa-vscode"
+    "url": "https://github.com/costa-app/costa-vscode"
   },
   "bugs": {
-    "url": "https://github.com/costa-security/costa-vscode/issues"
+    "url": "https://github.com/costa-app/costa-vscode/issues"
   },
   "categories": [
     "Other"
   ],
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "icon": "res/icon.png",
   "files": [
     "LICENSE.md",
     "dist/*",
-    "res/*"
+    "res/**/*"
   ],
   "engines": {
-    "vscode": "^1.97.0"
+    "vscode": "^1.107.0"
   },
   "activationEvents": [
-    "onUri",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:costa.usage",
+    "onView:costa.setup",
+    "onCommand:costa.login",
+    "onCommand:costa.logout",
+    "onCommand:costa.sidebar.reveal",
+    "onCommand:costa.revealAndRefresh",
+    "onCommand:costa.setup.claudeCode",
+    "onCommand:costa.setup.codex"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "costa",
+          "title": "Costa",
+          "icon": "res/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "costa": [
+        {
+          "type": "webview",
+          "id": "costa.usage",
+          "name": "Usage",
+          "when": "costa.loggedIn"
+        },
+        {
+          "type": "webview",
+          "id": "costa.setup",
+          "name": "Setup"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "costa.login",
@@ -44,8 +75,43 @@
         "command": "costa.logout",
         "title": "Logout",
         "category": "Costa Code"
+      },
+      {
+        "command": "costa.sidebar.reveal",
+        "title": "Show Costa",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.revealAndRefresh",
+        "title": "Reveal and Refresh Costa",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.setup.claudeCode",
+        "title": "Set up Claude Code",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.setup.codex",
+        "title": "Set up Codex",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.refresh",
+        "title": "Refresh",
+        "category": "Costa Code",
+        "icon": "$(refresh)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "costa.refresh",
+          "when": "view == costa.usage",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
       "title": "costa",
@@ -68,15 +134,10 @@
         "costa.oauth2.redirectUri": {
           "type": "string",
           "default": "vscode://costa.costa-code/callback",
-          "description": "OAuth2 redirect URI for this VS Code extension"
+          "description": "OAuth2 redirect URI for this VS Code extension (deprecated - CLI handles OAuth now)"
         }
       }
-    },
-    "uriHandlers": [
-      {
-        "uri": "vscode://costa.costa-code/callback"
-      }
-    ]
+    }
   },
   "scripts": {
     "build": "tsdown src/index.ts --external vscode",
@@ -87,30 +148,30 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "vscode:prepublish": "pnpm run build",
-    "release": "bumpp",
-    "release:internal": "bumpp prerelease --preid internal --commit --tag",
+    "release": "bumpp --commit --tag v%v --push",
+    "release:pre": "bumpp --commit --tag pre-v%v --push",
     "ext:package": "vsce package --no-dependencies",
     "ext:publish": "vsxpub --no-dependencies"
   },
   "dependencies": {
-    "dotenv": "^17.2.1"
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.2.1",
-    "@types/node": "^22.13.4",
-    "@types/vscode": "^1.97.0",
-    "@vscode/vsce": "^3.2.2",
-    "bumpp": "^10.0.3",
-    "eslint": "^9.20.1",
+    "@antfu/eslint-config": "^4.19.0",
+    "@types/node": "^22.19.3",
+    "@types/vscode": "^1.107.0",
+    "@vscode/vsce": "^3.7.1",
+    "bumpp": "^10.3.2",
+    "eslint": "^9.39.2",
     "esno": "^4.8.0",
-    "ovsx": "^0.10.5",
-    "pnpm": "^10.4.1",
-    "reactive-vscode": "^0.2.10",
+    "ovsx": "^0.10.7",
+    "pnpm": "^10.26.2",
+    "reactive-vscode": "^0.2.22",
     "tsdown": "^0.18.3",
-    "typescript": "^5.7.3",
+    "typescript": "^5.9.3",
     "vite": "^6.4.1",
-    "vitest": "^3.0.5",
-    "vscode-ext-gen": "^1.0.0",
-    "vsxpub": "^0.1.0"
+    "vitest": "^3.2.4",
+    "vscode-ext-gen": "^1.5.1",
+    "vsxpub": "^0.1.2"
   }
 }

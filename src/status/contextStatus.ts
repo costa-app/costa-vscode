@@ -40,12 +40,12 @@ export class ContextStatus implements Disposable {
    * Update the status bar to show current context length (0–100).
    * Clamps out-of-range inputs and formats tooltip/text.
    */
-  update(context_length: number) {
+  update(context_length: number | string) {
     log.info(`ContextStatus: Update called with context_length=${context_length}`)
 
-    // Check for undefined or invalid values
-    if (context_length === undefined || Number.isNaN(Number(context_length))) {
-      log.warn(`ContextStatus: Invalid context_length detected, resetting to default. context_length=${context_length}`)
+    // Check for undefined, invalid values, or placeholder string
+    if (context_length === undefined || context_length === '-' || Number.isNaN(Number(context_length))) {
+      log.info(`ContextStatus: No context_length data available, using default. context_length=${context_length}`)
       this.item.text = '$(book) -k'
       this.item.color = undefined
       this.item.tooltip = 'Context Length: -'
@@ -53,13 +53,14 @@ export class ContextStatus implements Disposable {
     }
 
     try {
-      const formattedValue = this.formatForDisplay(context_length)
+      const contextNum = typeof context_length === 'string' ? Number.parseInt(context_length, 10) : context_length
+      const formattedValue = this.formatForDisplay(contextNum)
       const newText = `$(book) ${formattedValue}`
       log.info(`ContextStatus: Setting text to "${newText}" with context_length ${context_length}`)
 
       this.item.text = newText
-      this.item.color = this.colorForContextLength(context_length)
-      this.item.tooltip = `Context Length: ${context_length}`
+      this.item.color = this.colorForContextLength(contextNum)
+      this.item.tooltip = `Context Length: ${contextNum}`
     }
     catch (error) {
       log.error('ContextStatus: Error updating status bar:', error)

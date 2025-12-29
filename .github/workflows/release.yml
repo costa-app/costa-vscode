@@ -4,15 +4,20 @@ on:
   push:
     tags:
       - v*
+      - pre-v*
 
 jobs:
   publish-extension:
+    environment: marketplace
     permissions:
-      id-token: write
       contents: write
-      actions: write
 
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,18 +33,68 @@ jobs:
           node-version: lts/*
           cache: pnpm
 
-      - run: npx changelogithub
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Derive release metadata from tag
+        id: meta
+        run: |
+          REF="${GITHUB_REF_NAME}"
+
+          if [[ "$REF" == pre-v* ]]; then
+            IS_PRERELEASE="true"
+            VERSION="${REF#pre-v}"
+          else
+            IS_PRERELEASE="false"
+            VERSION="${REF#v}"
+          fi
+
+          # Must be X.Y.Z for VS Code Marketplace
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must be plain SemVer X.Y.Z (no -internal/-rc). Got: $VERSION"
+            exit 1
+          fi
+
+          echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - run: pnpm install
+
+      - name: Set extension version from tag
+        run: pnpm version --no-git-tag-version "${{ steps.meta.outputs.version }}"
+
+      - name: Generate GitHub Release notes
+        run: npx changelogithub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate .vsix file
         run: pnpm package
 
-      - name: Publish Extension
-        run: npx vsxpub --no-dependencies
+      # Optional but nice: attach the VSIX to the GitHub Release.
+      # Uses gh CLI (available on ubuntu-latest).
+      - name: Create/Update GitHub Release and upload VSIX
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${{ steps.meta.outputs.is_prerelease }}" == "true" ]]; then
+            gh release create "$TAG" --prerelease --title "$TAG" ./*.vsix --clobber || \
+            gh release upload "$TAG" ./*.vsix --clobber
+          else
+            gh release create "$TAG" --title "$TAG" ./*.vsix --clobber || \
+            gh release upload "$TAG" ./*.vsix --clobber
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VSCE_PAT: ${{secrets.VSCE_PAT}}
-          OVSX_PAT: ${{secrets.OVSX_PAT}}
+
+      - name: Publish Extension (stable)
+        if: steps.meta.outputs.is_prerelease == 'false'
+        run: npx vsxpub --no-dependencies
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Extension (pre-release)
+        if: steps.meta.outputs.is_prerelease == 'true'
+        run: npx vsxpub --no-dependencies --pre-release
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -12,7 +12,7 @@
 | `costa.apiToken`           | API token for connecting to the Costa service (deprecated - use OAuth2 login instead) | `string` | `""`                                     |
 | `costa.apiBaseUrl`         | Base URL for the Costa API                                                            | `string` | `"https://ai.costa.app"`                 |
 | `costa.oauth2.clientId`    | OAuth2 client ID for this VS Code extension                                           | `string` | `"6E1C382C-1034-4466-8CCF-65ED17DBBA3D"` |
-| `costa.oauth2.redirectUri` | OAuth2 redirect URI for this VS Code extension                                        | `string` | `"vscode://costa.costa-code/callback"`   |
+| `costa.oauth2.redirectUri` | OAuth2 redirect URI for this VS Code extension (deprecated - CLI handles OAuth now)   | `string` | `"vscode://costa.costa-code/callback"`   |
 
 <!-- configs -->
 
@@ -20,10 +20,15 @@
 
 <!-- commands -->
 
-| Command        | Title              |
-| -------------- | ------------------ |
-| `costa.login`  | Costa Code: Login  |
-| `costa.logout` | Costa Code: Logout |
+| Command                  | Title                                |
+| ------------------------ | ------------------------------------ |
+| `costa.login`            | Costa Code: Login                    |
+| `costa.logout`           | Costa Code: Logout                   |
+| `costa.sidebar.reveal`   | Costa Code: Show Costa               |
+| `costa.revealAndRefresh` | Costa Code: Reveal and Refresh Costa |
+| `costa.setup.claudeCode` | Costa Code: Set up Claude Code       |
+| `costa.setup.codex`      | Costa Code: Set up Codex             |
+| `costa.refresh`          | Costa Code: Refresh                  |
 
 <!-- commands -->
 
@@ -31,7 +36,7 @@
 
 To install an internal build of the Costa VS Code extension for use inside Costa:
 
-1. Navigate to the GitHub releases page: https://github.com/costa-security/costa-vscode/releases
+1. Navigate to the GitHub releases page: https://github.com/costa-app/costa-vscode/releases
 2. Locate the latest internal release (the `.vsix` file name will include `-internal.` and a commit hash, e.g., `costa-code-0.0.1-internal.1+a88d628.vsix`).
 3. Download the `.vsix` file to your machine.
 4. In VS Code, open the Extensions view:
@@ -42,4 +47,4 @@ To install an internal build of the Costa VS Code extension for use inside Costa
 
 ## License
 
-[MIT](./LICENSE.md) License © 2025 [Jacob Foster Heimark](https://github.com/hmk) and [Costa Security](https://costa.security)
+[MIT](./LICENSE.md) License © 2025 [Jacob Foster Heimark](https://github.com/hmk) and [Costa Security](https://costa.app)
