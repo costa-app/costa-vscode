@@ -28,6 +28,7 @@
 | `costa.revealAndRefresh` | Costa Code: Reveal and Refresh Costa |
 | `costa.setup.claudeCode` | Costa Code: Set up Claude Code       |
 | `costa.setup.codex`      | Costa Code: Set up Codex             |
+| `costa.refresh`          | Costa Code: Refresh                  |
 
 <!-- commands -->
 
