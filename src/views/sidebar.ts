@@ -375,7 +375,7 @@ function render(state) {
 
         \${isUnix ? \`
         <div class="card">
-          <h4>System CLI</h4>
+          <h4>Costa CLI</h4>
           <p>
             <span class="status-badge \${setup.system_binary?.installed ? 'status-configured' : 'status-not-configured'}">
               \${setup.system_binary?.installed ? '✓ Installed' : '⚠ Not Installed'}
