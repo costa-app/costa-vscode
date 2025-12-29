@@ -148,8 +148,8 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "vscode:prepublish": "pnpm run build",
-    "release": "bumpp --commit --tag v%v --push",
-    "release:pre": "bumpp --commit --tag pre-v%v --push",
+    "release": "bumpp --commit --tag v%s --push",
+    "release:pre": "bumpp --commit --tag pre-v%s --push",
     "ext:package": "vsce package --no-dependencies",
     "ext:publish": "vsxpub --no-dependencies"
   },

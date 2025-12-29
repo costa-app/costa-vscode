@@ -30,8 +30,8 @@ update:
 release:
     pnpm run release
 
-release-internal:
-    pnpm run release:internal
+release-pre:
+    pnpm run release:pre
 
 # Extension publishing
 package:
