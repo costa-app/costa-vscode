@@ -287,6 +287,6 @@ export async function installToSystem(): Promise<void> {
   }
   catch (error) {
     log.error('cli.installToSystem: direct copy failed', error)
-    throw new Error('Permission denied. Please run: sudo cp "' + bundledBin + '" "' + systemPath + '" && sudo chmod 755 "' + systemPath + '"')
+    throw new Error(`Permission denied. Please run: sudo cp "${bundledBin}" "${systemPath}" && sudo chmod 755 "${systemPath}"`)
   }
 }

@@ -286,9 +286,11 @@ export class SidebarProvider implements WebviewViewProvider {
 </head>
 <body>
   <main id="content"></main>
-  ${mode === 'setup' ? `<footer id="footer">
+  ${mode === 'setup'
+    ? `<footer id="footer">
     <button id="logout" class="secondary">Logout</button>
-  </footer>` : ''}
+  </footer>`
+    : ''}
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
 const mode = '${mode}';
