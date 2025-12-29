@@ -7,63 +7,93 @@ on:
       - pre-v*
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+  publish-extension:
+    environment: marketplace
     permissions:
       contents: write
+
+    runs-on: ubuntu-latest
 
     defaults:
       run:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set node
+        uses: actions/setup-node@v4
         with:
           node-version: lts/*
           cache: pnpm
 
-      - name: Derive metadata from tag
+      - name: Derive release metadata from tag
         id: meta
         run: |
           REF="${GITHUB_REF_NAME}"
+
           if [[ "$REF" == pre-v* ]]; then
-            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            IS_PRERELEASE="true"
             VERSION="${REF#pre-v}"
           else
-            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            IS_PRERELEASE="false"
             VERSION="${REF#v}"
           fi
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || (echo "Tag must be X.Y.Z"; exit 1)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Must be X.Y.Z for VS Code Marketplace
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must be plain SemVer X.Y.Z (no -internal/-rc). Got: $VERSION"
+            exit 1
+          fi
+
+          echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - run: pnpm install
 
-      - name: Set extension version from tag (must be X.Y.Z)
-        run: pnpm version --no-git-tag-version ${{ steps.meta.outputs.version }}
+      - name: Set extension version from tag
+        run: pnpm version --no-git-tag-version "${{ steps.meta.outputs.version }}"
 
-      - name: Build VSIX
-        run: pnpm package
-
-      # Pre-release lane: create GH prerelease + attach VSIX
-      - name: Create GitHub prerelease and upload VSIX
-        if: steps.meta.outputs.is_prerelease == 'true'
-        run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --prerelease \
-            --title "${GITHUB_REF_NAME}" \
-            ./*.vsix
+      - name: Generate GitHub Release notes
+        run: npx changelogithub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Stable lane: publish to marketplaces (+ optional GH release)
-      - name: Publish to marketplaces (stable)
+      - name: Generate .vsix file
+        run: pnpm package
+
+      # Optional but nice: attach the VSIX to the GitHub Release.
+      # Uses gh CLI (available on ubuntu-latest).
+      - name: Create/Update GitHub Release and upload VSIX
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${{ steps.meta.outputs.is_prerelease }}" == "true" ]]; then
+            gh release create "$TAG" --prerelease --title "$TAG" ./*.vsix --clobber || \
+            gh release upload "$TAG" ./*.vsix --clobber
+          else
+            gh release create "$TAG" --title "$TAG" ./*.vsix --clobber || \
+            gh release upload "$TAG" ./*.vsix --clobber
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Extension (stable)
         if: steps.meta.outputs.is_prerelease == 'false'
         run: npx vsxpub --no-dependencies
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Extension (pre-release)
+        if: steps.meta.outputs.is_prerelease == 'true'
+        run: npx vsxpub --no-dependencies --pre-release
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
