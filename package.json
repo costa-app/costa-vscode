@@ -5,7 +5,7 @@
   "version": "0.0.6",
   "private": true,
   "packageManager": "pnpm@10.4.1",
-  "description": "",
+  "description": "Costa Code turbo charges your favorite coding agents (including Claude Code, Codex and many more). Share conversations with your team, get access to the best models with every agent, and more... see https://costa.app for more info.",
   "author": "Jacob Foster Heimark <jake@costa.security>",
   "license": "MIT",
   "homepage": "https://github.com/costa-app/costa-vscode#readme",
@@ -17,6 +17,7 @@
     "url": "https://github.com/costa-app/costa-vscode/issues"
   },
   "categories": [
+    "Chat",
     "Other"
   ],
   "main": "./dist/index.cjs",
@@ -101,6 +102,21 @@
         "title": "Refresh",
         "category": "Costa Code",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "costa.showExtensionInfo",
+        "title": "Show Extension Info",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.refreshPoints",
+        "title": "Refresh Points",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.install.system",
+        "title": "Install Costa CLI to System",
+        "category": "Costa Code"
       }
     ],
     "menus": {
