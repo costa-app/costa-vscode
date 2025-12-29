@@ -81,7 +81,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate .vsix file
-        run: pnpm package
+        run: pnpm ext:package
 
       - name: Create/Update GitHub Release and upload VSIX
         run: |
