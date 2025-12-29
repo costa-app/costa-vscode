@@ -25,10 +25,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: costa-app/action-setup@v4
 
       - name: Set node
-        uses: actions/setup-node@v4
+        uses: costa-app/setup-node@v3
         with:
           node-version: lts/*
           cache: pnpm
