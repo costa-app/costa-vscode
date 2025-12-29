@@ -4,42 +4,67 @@ on:
   push:
     tags:
       - v*
+      - pre-v*
 
 jobs:
-  publish-extension:
-    permissions:
-      id-token: write
-      contents: write
-      actions: write
-
+  publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install pnpm
-        uses: costa-app/action-setup@v4
-
-      - name: Set node
-        uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: lts/*
           cache: pnpm
 
-      - run: npx changelogithub
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Derive metadata from tag
+        id: meta
+        run: |
+          REF="${GITHUB_REF_NAME}"
+          if [[ "$REF" == pre-v* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            VERSION="${REF#pre-v}"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            VERSION="${REF#v}"
+          fi
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || (echo "Tag must be X.Y.Z"; exit 1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - run: pnpm install
 
-      - name: Generate .vsix file
-        run: pnpm ext:package
+      - name: Set extension version from tag (must be X.Y.Z)
+        run: pnpm version --no-git-tag-version ${{ steps.meta.outputs.version }}
 
-      - name: Publish Extension
-        run: npx vsxpub --no-dependencies
+      - name: Build VSIX
+        run: pnpm package
+
+      # Pre-release lane: create GH prerelease + attach VSIX
+      - name: Create GitHub prerelease and upload VSIX
+        if: steps.meta.outputs.is_prerelease == 'true'
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --prerelease \
+            --title "${GITHUB_REF_NAME}" \
+            ./*.vsix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VSCE_PAT: ${{secrets.VSCE_PAT}}
-          OVSX_PAT: ${{secrets.OVSX_PAT}}
+
+      # Stable lane: publish to marketplaces (+ optional GH release)
+      - name: Publish to marketplaces (stable)
+        if: steps.meta.outputs.is_prerelease == 'false'
+        run: npx vsxpub --no-dependencies
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
