@@ -54,6 +54,9 @@ export class SidebarProvider implements WebviewViewProvider {
           case 'setup:codex':
             await vscode.commands.executeCommand('costa.setup.codex')
             break
+          case 'install:systemCosta':
+            await vscode.commands.executeCommand('costa.install.system')
+            break
           case 'refresh':
             await this.refreshAll()
             break
@@ -82,13 +85,17 @@ export class SidebarProvider implements WebviewViewProvider {
 
   public async refreshAll() {
     try {
-      const [status, setup] = await Promise.all([
+      const [status, setupStatus, systemBinary] = await Promise.all([
         cli.status().catch((err) => {
           log.error('sidebar: status failed', err)
           return undefined
         }),
         cli.setupStatus().catch((err) => {
           log.error('sidebar: setup status failed', err)
+          return undefined
+        }),
+        cli.getSystemBinaryInfo().catch((err) => {
+          log.error('sidebar: getSystemBinaryInfo failed', err)
           return undefined
         }),
       ])
@@ -98,6 +105,11 @@ export class SidebarProvider implements WebviewViewProvider {
         points: this.latestUsage?.points ?? status?.points ?? 0,
         total_points: this.latestUsage?.total_points ?? status?.total_points ?? 0,
         context_length: this.latestUsage?.context_length ?? (status as any)?.context_length ?? '-',
+      }
+
+      const setup = {
+        ...setupStatus,
+        system_binary: systemBinary,
       }
 
       this.postState({ loggedIn, usage, setup })
@@ -335,6 +347,7 @@ function render(state) {
       </div>
     \`;
   } else if (mode === 'setup') {
+    const isUnix = navigator.platform.includes('Mac') || navigator.platform.includes('Linux');
     content.innerHTML = \`
       <div class="section">
         <div class="card">
@@ -357,6 +370,19 @@ function render(state) {
           </p>
           <button id="setup-codex">Set up Codex</button>
         </div>
+
+        \${isUnix ? \`
+        <div class="card">
+          <h4>System CLI</h4>
+          <p>
+            <span class="status-badge \${setup.system_binary?.installed ? 'status-configured' : 'status-not-configured'}">
+              \${setup.system_binary?.installed ? '✓ Installed' : '⚠ Not Installed'}
+            </span>
+          </p>
+          \${setup.system_binary?.version ? \`<p>Version: \${setup.system_binary.version}</p>\` : ''}
+          <button id="install-system-costa">Install to /usr/local/bin</button>
+        </div>
+        \` : ''}
       </div>
     \`;
 
@@ -368,6 +394,11 @@ function render(state) {
     const setupCodexBtn = document.getElementById('setup-codex');
     if (setupCodexBtn) {
       setupCodexBtn.onclick = () => vscode.postMessage({ type: 'setup:codex' });
+    }
+
+    const installBtn = document.getElementById('install-system-costa');
+    if (installBtn) {
+      installBtn.onclick = () => vscode.postMessage({ type: 'install:systemCosta' });
     }
   }
 }

@@ -1,6 +1,6 @@
 import type { ExtensionContext } from 'vscode'
 import { execFile } from 'node:child_process'
-import { chmodSync, existsSync } from 'node:fs'
+import { chmodSync, copyFileSync, existsSync } from 'node:fs'
 import * as path from 'node:path'
 import process from 'node:process'
 import { log } from './utils/logger'
@@ -160,6 +160,11 @@ export interface SetupComponentStatus {
 export interface SetupStatusResult {
   claude_code?: SetupComponentStatus
   codex?: SetupComponentStatus
+  system_binary?: {
+    installed?: boolean
+    version?: string
+    path?: string
+  }
 }
 
 export async function setupStatus(): Promise<SetupStatusResult> {
@@ -194,5 +199,94 @@ export async function setupCodex(): Promise<void> {
   catch (error) {
     log.error('cli.setupCodex failed:', error)
     throw error
+  }
+}
+
+interface VersionResult {
+  version?: string
+  commit?: string
+  date?: string
+}
+
+export async function getSystemBinaryInfo(): Promise<{ installed: boolean, version?: string, path: string }> {
+  const installPath = '/usr/local/bin/costa'
+
+  // Check common system locations for existing installation
+  const commonPaths = ['/usr/local/bin/costa', '/opt/homebrew/bin/costa', '/usr/bin/costa']
+  let existingPath: string | null = null
+
+  for (const p of commonPaths) {
+    if (existsSync(p)) {
+      existingPath = p
+      break
+    }
+  }
+
+  if (!existingPath) {
+    log.info('cli.getSystemBinaryInfo: system binary not found')
+    return { installed: false, path: installPath }
+  }
+
+  try {
+    const { stdout } = await new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
+      execFile(existingPath!, ['version', '--format', 'json'], { timeout: 5_000 }, (err, stdout, stderr) => {
+        if (err) {
+          reject(err)
+          return
+        }
+        resolve({ stdout: (stdout || '').toString(), stderr: (stderr || '').toString() })
+      })
+    })
+
+    const result = JSON.parse(stdout) as VersionResult
+    log.info(`cli.getSystemBinaryInfo: version=${result.version} at ${existingPath}`)
+    return { installed: true, version: result.version, path: existingPath }
+  }
+  catch (error) {
+    log.error('cli.getSystemBinaryInfo: failed to get version', error)
+    return { installed: true, path: existingPath }
+  }
+}
+
+export async function installToSystem(): Promise<void> {
+  if (!extensionContext) {
+    throw new Error('CLI context not initialized')
+  }
+
+  const bundledBin = getBundledCliPath(extensionContext)
+  if (!existsSync(bundledBin)) {
+    throw new Error('Bundled binary not found')
+  }
+
+  const systemPath = '/usr/local/bin/costa'
+
+  // On macOS, use osascript for admin elevation
+  if (process.platform === 'darwin') {
+    log.info('cli.installToSystem: using osascript for elevation on macOS')
+    return await new Promise<void>((resolve, reject) => {
+      const script = `do shell script "cp '${bundledBin}' '${systemPath}' && chmod 755 '${systemPath}'" with administrator privileges`
+      execFile('osascript', ['-e', script], { timeout: 60_000 }, (err, stdout, stderr) => {
+        if (err) {
+          const msg = (stderr || '').toString().trim()
+          log.error('cli.installToSystem: osascript failed', err)
+          reject(new Error(msg ? `Installation failed: ${msg}` : 'Installation cancelled or failed'))
+          return
+        }
+        log.info('cli.installToSystem: installation successful')
+        resolve()
+      })
+    })
+  }
+
+  // On Linux, attempt direct copy and chmod (will fail if no permissions)
+  try {
+    log.info('cli.installToSystem: attempting direct copy on Linux')
+    copyFileSync(bundledBin, systemPath)
+    chmodSync(systemPath, 0o755)
+    log.info('cli.installToSystem: installation successful')
+  }
+  catch (error) {
+    log.error('cli.installToSystem: direct copy failed', error)
+    throw new Error('Permission denied. Please run: sudo cp "' + bundledBin + '" "' + systemPath + '" && sudo chmod 755 "' + systemPath + '"')
   }
 }
