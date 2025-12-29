@@ -83,6 +83,11 @@ jobs:
       - name: Generate .vsix file
         run: pnpm ext:package
 
+      - name: Verify VSCE token (sanity check)
+        run: npx vsce verify-pat
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
       - name: Create/Update GitHub Release and upload VSIX
         run: |
           set -euo pipefail
