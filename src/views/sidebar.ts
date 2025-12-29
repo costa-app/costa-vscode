@@ -143,18 +143,6 @@ export class SidebarProvider implements WebviewViewProvider {
     font-size: var(--vscode-font-size);
     color: var(--vscode-foreground);
   }
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    border-bottom: 1px solid var(--vscode-widget-border);
-  }
-  header h2 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
   button {
     background: var(--vscode-button-background);
     color: var(--vscode-button-foreground);
@@ -265,6 +253,13 @@ export class SidebarProvider implements WebviewViewProvider {
     margin-bottom: 24px;
     color: var(--vscode-descriptionForeground);
   }
+  .login-prompt button {
+    background: #4f46e5;
+    color: #ffffff;
+  }
+  .login-prompt button:hover {
+    background: #4338ca;
+  }
   .error-message {
     padding: 12px;
     background: var(--vscode-inputValidation-errorBackground);
@@ -276,12 +271,8 @@ export class SidebarProvider implements WebviewViewProvider {
 </style>
 </head>
 <body>
-  <header>
-    <h2>Costa</h2>
-    <button id="refresh" class="secondary" title="Refresh">&#x21bb;</button>
-  </header>
   <main id="content"></main>
-  <footer>
+  <footer id="footer">
     <button id="logout" class="secondary">Logout</button>
   </footer>
 <script nonce="${nonce}">
@@ -289,9 +280,11 @@ const vscode = acquireVsCodeApi();
 
 function render(state) {
   const content = document.getElementById('content');
+  const footer = document.getElementById('footer');
 
   if (state?.error) {
     content.innerHTML = \`<div class="error-message">\${state.error}</div>\`;
+    if (footer) footer.style.display = 'none';
     return;
   }
 
@@ -307,8 +300,12 @@ function render(state) {
     if (loginBtn) {
       loginBtn.onclick = () => vscode.postMessage({ type: 'login' });
     }
+    if (footer) footer.style.display = 'none';
     return;
   }
+
+  // Show footer when logged in
+  if (footer) footer.style.display = 'block';
 
   // Logged in view
   const usage = state.usage || {};
@@ -371,7 +368,6 @@ function render(state) {
   }
 }
 
-document.getElementById('refresh').onclick = () => vscode.postMessage({ type: 'refresh' });
 document.getElementById('logout').onclick = () => vscode.postMessage({ type: 'logout' });
 
 window.addEventListener('message', ev => {

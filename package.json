@@ -88,8 +88,23 @@
         "command": "costa.setup.codex",
         "title": "Set up Codex",
         "category": "Costa Code"
+      },
+      {
+        "command": "costa.refresh",
+        "title": "Refresh",
+        "category": "Costa Code",
+        "icon": "$(refresh)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "costa.refresh",
+          "when": "view == costa.sidebar",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
       "title": "costa",

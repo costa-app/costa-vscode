@@ -236,6 +236,16 @@ const { activate, deactivate } = defineExtension((context) => {
         window.showErrorMessage('Failed to refresh Costa points data')
       }
     },
+    'costa.refresh': async () => {
+      log.info('index: Refreshing sidebar')
+      try {
+        await usageStream.fetchUsageData()
+        await sidebarProvider.refreshAll()
+      }
+      catch (error) {
+        log.error('index: Error refreshing sidebar:', error)
+      }
+    },
   })
 
   // Return a cleanup function to dispose the status bar items
