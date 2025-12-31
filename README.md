@@ -12,7 +12,6 @@ A Visual Studio Code extension that provides seamless integration with Costa AI 
 - **Automated Setup**: One-click setup for Claude Code and Codex integration
 - **Costa CLI Integration**: Bundled Costa CLI for macOS, Windows, and Linux with automatic platform detection
 - **Usage Dashboard**: Dedicated sidebar panels for detailed usage information and setup management
-- **System Installation**: Install Costa CLI to `/usr/local/bin` for system-wide access (macOS/Linux)
 
 ## Configurations
 
@@ -33,7 +32,6 @@ This extension currently has no user-configurable settings. All configuration is
 | `costa.refresh`           | Costa Code: Refresh                     |
 | `costa.showExtensionInfo` | Costa Code: Show Extension Info         |
 | `costa.refreshPoints`     | Costa Code: Refresh Points              |
-| `costa.install.system`    | Costa Code: Install Costa CLI to System |
 
 <!-- commands -->
 
@@ -61,7 +59,6 @@ The extension provides two webview panels in the Costa activity bar:
 ### Setup Panel
 - **Claude Code Setup**: Configure Claude Code to use Costa AI models
 - **Codex Setup**: Configure Codex integration
-- **Costa CLI Installation**: Install the bundled CLI to your system path (macOS/Linux)
 - Status indicators showing configuration state for each component
 - One-click setup buttons for each integration
 
@@ -136,6 +133,5 @@ To install an internal build of the Costa VS Code extension for use inside Costa
 
 ## Troubleshooting
 
-- If you see "Costa CLI not found", either reinstall the extension or install `costa` on your PATH and restart VS Code
+- If you see "Costa CLI not found", reinstall the extension or install `costa` on your PATH and restart VS Code
 - Status bar values show `-` until you're logged in and data is available
-- On macOS, installing to `/usr/local/bin` prompts for administrator privileges
