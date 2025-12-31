@@ -234,27 +234,6 @@ const { activate, deactivate } = defineExtension((context) => {
         window.showErrorMessage(`Codex setup failed: ${String(error)}`)
       }
     },
-    'costa.install.system': async () => {
-      try {
-        await window.withProgress(
-          {
-            location: ProgressLocation.Notification,
-            title: 'Installing costa to /usr/local/bin...',
-            cancellable: false,
-          },
-          async () => {
-            await cli.installToSystem()
-            await usageProvider.refreshAll()
-            await setupProvider.refreshAll()
-          },
-        )
-        window.showInformationMessage('Successfully installed costa to /usr/local/bin')
-      }
-      catch (error) {
-        log.error('index: install.system failed', error)
-        window.showErrorMessage(`Installation failed: ${String(error)}`)
-      }
-    },
     'costa.refreshPoints': async () => {
       log.info('index: Manually refreshing points data')
       if (isDevelopment) {

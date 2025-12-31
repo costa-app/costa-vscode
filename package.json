@@ -112,11 +112,6 @@
         "command": "costa.refreshPoints",
         "title": "Refresh Points",
         "category": "Costa Code"
-      },
-      {
-        "command": "costa.install.system",
-        "title": "Install Costa CLI to System",
-        "category": "Costa Code"
       }
     ],
     "menus": {
