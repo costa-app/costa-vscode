@@ -22,6 +22,7 @@ export class SidebarProvider implements WebviewViewProvider {
   private view?: WebviewView
   private latestUsage?: { points: any, total_points: any, context_length: any }
   private currentState: SidebarState = { loggedIn: false }
+  private lastNotifiedKiloError?: string
 
   constructor(
     private context: ExtensionContext,
@@ -53,6 +54,9 @@ export class SidebarProvider implements WebviewViewProvider {
             break
           case 'setup:codex':
             await vscode.commands.executeCommand('costa.setup.codex')
+            break
+          case 'setup:kilo':
+            await vscode.commands.executeCommand('costa.setup.kilo')
             break
           case 'refresh':
             await this.refreshAll()
@@ -101,6 +105,12 @@ export class SidebarProvider implements WebviewViewProvider {
       }
 
       const setup = setupStatus
+
+      // Show kilo_error notification if present and not already notified
+      if (process.platform === 'darwin' && setupStatus?.kilo_error && setupStatus.kilo_error !== this.lastNotifiedKiloError) {
+        this.lastNotifiedKiloError = setupStatus.kilo_error
+        vscode.window.showWarningMessage(`Kilo: ${setupStatus.kilo_error}`)
+      }
 
       this.postState({ loggedIn, usage, setup })
     }
@@ -324,6 +334,7 @@ function render(state) {
 
   const claudeCodeConfigured = setup.claude_code?.config_exists && setup.claude_code?.is_costa_enabled;
   const codexConfigured = setup.codex?.config_exists && setup.codex?.is_costa_enabled;
+  const kiloConfigured = setup.kilo?.config_exists && setup.kilo?.is_costa_enabled;
 
   if (mode === 'usage') {
     content.innerHTML = \`
@@ -340,6 +351,7 @@ function render(state) {
     \`;
   } else if (mode === 'setup') {
     const isUnix = navigator.platform.includes('Mac') || navigator.platform.includes('Linux');
+    const isMac = navigator.platform.includes('Mac');
     content.innerHTML = \`
       <div class="section">
         <div class="card">
@@ -362,6 +374,18 @@ function render(state) {
           </p>
           <button id="setup-codex">Set up Codex</button>
         </div>
+
+        \${isMac ? \`
+        <div class="card">
+          <h4>Kilo</h4>
+          <p>
+            <span class="status-badge \${kiloConfigured ? 'status-configured' : 'status-not-configured'}">
+              \${kiloConfigured ? '✓ Connected' : '⚠ Setup Needed'}
+            </span>
+          </p>
+          <button id="setup-kilo">Set up Kilo</button>
+        </div>
+        \` : ''}
       </div>
     \`;
 
@@ -373,6 +397,11 @@ function render(state) {
     const setupCodexBtn = document.getElementById('setup-codex');
     if (setupCodexBtn) {
       setupCodexBtn.onclick = () => vscode.postMessage({ type: 'setup:codex' });
+    }
+
+    const setupKiloBtn = document.getElementById('setup-kilo');
+    if (setupKiloBtn) {
+      setupKiloBtn.onclick = () => vscode.postMessage({ type: 'setup:kilo' });
     }
   }
 }

@@ -160,6 +160,8 @@ export interface SetupComponentStatus {
 export interface SetupStatusResult {
   claude_code?: SetupComponentStatus
   codex?: SetupComponentStatus
+  kilo?: SetupComponentStatus
+  kilo_error?: string
 }
 
 export async function setupStatus(): Promise<SetupStatusResult> {
@@ -193,6 +195,17 @@ export async function setupCodex(): Promise<void> {
   }
   catch (error) {
     log.error('cli.setupCodex failed:', error)
+    throw error
+  }
+}
+
+export async function setupKilo(): Promise<void> {
+  try {
+    await run(['setup', 'kilo', '--force', '--format', 'json'])
+    log.info('cli.setupKilo: successful')
+  }
+  catch (error) {
+    log.error('cli.setupKilo failed:', error)
     throw error
   }
 }
