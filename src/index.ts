@@ -234,6 +234,28 @@ const { activate, deactivate } = defineExtension((context) => {
         window.showErrorMessage(`Codex setup failed: ${String(error)}`)
       }
     },
+    'costa.setup.kilo': async () => {
+      try {
+        window.showInformationMessage('Kilo requires VS Code to be closed to finish its secure storage setup. You may need to quit VS Code and reopen after setup completes.')
+        await window.withProgress(
+          {
+            location: ProgressLocation.Notification,
+            title: 'Setting up Kilo...',
+            cancellable: false,
+          },
+          async () => {
+            await cli.setupKilo()
+            await usageProvider.refreshAll()
+            await setupProvider.refreshAll()
+          },
+        )
+        window.showInformationMessage('Kilo setup complete. Please quit and reopen VS Code to finish Kilo setup.')
+      }
+      catch (error) {
+        log.error('index: setup.kilo failed', error)
+        window.showErrorMessage(`Kilo setup failed: ${String(error)}. Kilo requires VS Code to be closed during setup. Please quit VS Code and try again.`)
+      }
+    },
     'costa.refreshPoints': async () => {
       log.info('index: Manually refreshing points data')
       if (isDevelopment) {

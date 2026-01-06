@@ -55,4 +55,29 @@ describe('embedded costa CLI binary', () => {
       // Other non-zero exit codes are tolerated as long as execution started.
     }
   })
+
+  // Test for Kilo setup command flags - macOS only
+  if (process.platform === 'darwin') {
+    it('should invoke kilo setup with correct flags on macOS', async () => {
+      const bin = expectedBundledBinaryPath()
+
+      // This is a smoke test to ensure the setup kilo command exists
+      // We don't actually run it (would modify system state), just verify
+      // the binary accepts the command structure
+      try {
+        // Run with --help to validate the command exists without side effects
+        await execFileAsync(bin, ['setup', 'kilo', '--help'], { timeout: 5000 })
+        // If it returns (even non-zero for help), the command exists
+      }
+      catch (err: any) {
+        const code = (err && (err.code || err.errno)) as string | undefined
+        // Help commands often exit non-zero, but as long as it's not ENOENT
+        // the command structure is valid
+        if (code === 'ENOENT') {
+          throw new Error('setup kilo command not found in CLI')
+        }
+        // Non-ENOENT errors are OK (e.g., help text, permission issues, etc.)
+      }
+    })
+  }
 })

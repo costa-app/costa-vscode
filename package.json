@@ -39,7 +39,8 @@
     "onCommand:costa.sidebar.reveal",
     "onCommand:costa.revealAndRefresh",
     "onCommand:costa.setup.claudeCode",
-    "onCommand:costa.setup.codex"
+    "onCommand:costa.setup.codex",
+    "onCommand:costa.setup.kilo"
   ],
   "contributes": {
     "viewsContainers": {
@@ -95,6 +96,11 @@
       {
         "command": "costa.setup.codex",
         "title": "Set up Codex",
+        "category": "Costa Code"
+      },
+      {
+        "command": "costa.setup.kilo",
+        "title": "Set up Kilo",
         "category": "Costa Code"
       },
       {

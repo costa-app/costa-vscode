@@ -21,17 +21,18 @@ This extension currently has no user-configurable settings. All configuration is
 
 <!-- commands -->
 
-| Command                   | Title                                   |
-| ------------------------- | --------------------------------------- |
-| `costa.login`             | Costa Code: Login                       |
-| `costa.logout`            | Costa Code: Logout                      |
-| `costa.sidebar.reveal`    | Costa Code: Show Costa                  |
-| `costa.revealAndRefresh`  | Costa Code: Reveal and Refresh Costa    |
-| `costa.setup.claudeCode`  | Costa Code: Set up Claude Code          |
-| `costa.setup.codex`       | Costa Code: Set up Codex                |
-| `costa.refresh`           | Costa Code: Refresh                     |
-| `costa.showExtensionInfo` | Costa Code: Show Extension Info         |
-| `costa.refreshPoints`     | Costa Code: Refresh Points              |
+| Command                   | Title                                |
+| ------------------------- | ------------------------------------ |
+| `costa.login`             | Costa Code: Login                    |
+| `costa.logout`            | Costa Code: Logout                   |
+| `costa.sidebar.reveal`    | Costa Code: Show Costa               |
+| `costa.revealAndRefresh`  | Costa Code: Reveal and Refresh Costa |
+| `costa.setup.claudeCode`  | Costa Code: Set up Claude Code       |
+| `costa.setup.codex`       | Costa Code: Set up Codex             |
+| `costa.setup.kilo`        | Costa Code: Set up Kilo              |
+| `costa.refresh`           | Costa Code: Refresh                  |
+| `costa.showExtensionInfo` | Costa Code: Show Extension Info      |
+| `costa.refreshPoints`     | Costa Code: Refresh Points           |
 
 <!-- commands -->
 
