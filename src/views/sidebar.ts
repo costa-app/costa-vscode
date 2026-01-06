@@ -2,6 +2,7 @@ import type { ExtensionContext, Webview, WebviewView, WebviewViewProvider } from
 import type { SetupStatusResult } from '../cli'
 
 import type { UsageStream } from '../usageStream'
+import process from 'node:process'
 import * as vscode from 'vscode'
 import * as cli from '../cli'
 import { log } from '../utils/logger'
