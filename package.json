@@ -186,7 +186,7 @@
     "reactive-vscode": "^0.2.22",
     "tsdown": "^0.18.3",
     "typescript": "^5.9.3",
-    "vite": "^6.4.1",
+    "vite": "^6.4.2",
     "vitest": "^3.2.4",
     "vscode-ext-gen": "^1.5.1",
     "vsxpub": "^0.1.2"
